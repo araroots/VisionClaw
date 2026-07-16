@@ -74,14 +74,13 @@ fun StreamScreen(
         streamViewModel.webrtcViewModel = webrtcViewModel
     }
 
-    // Start stream or phone camera
+    // Start phone camera automatically; glasses camera is started manually via the camera toggle
     LaunchedEffect(isPhoneMode) {
         if (isPhoneMode) {
             geminiViewModel.streamingMode = StreamingMode.PHONE
             streamViewModel.startPhoneCamera(lifecycleOwner)
         } else {
             geminiViewModel.streamingMode = StreamingMode.GLASSES
-            streamViewModel.startStream()
         }
     }
 
@@ -153,6 +152,15 @@ fun StreamScreen(
                     wearablesViewModel.navigateToDeviceSelection()
                 },
                 onCapturePhoto = { streamViewModel.capturePhoto() },
+                isCaptureEnabled = isPhoneMode || streamUiState.streamSessionState == StreamSessionState.STREAMING,
+                onToggleCamera = {
+                    if (streamUiState.streamSessionState == StreamSessionState.STOPPED) {
+                        streamViewModel.startStream()
+                    } else {
+                        streamViewModel.stopStream()
+                    }
+                },
+                isCameraActive = streamUiState.streamSessionState != StreamSessionState.STOPPED,
                 onToggleAI = {
                     if (geminiUiState.isGeminiActive) {
                         geminiViewModel.stopSession()

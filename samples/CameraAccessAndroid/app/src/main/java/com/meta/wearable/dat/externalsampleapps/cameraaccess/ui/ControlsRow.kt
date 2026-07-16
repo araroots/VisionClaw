@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -24,6 +25,9 @@ import androidx.compose.ui.unit.dp
 fun ControlsRow(
     onStopStream: () -> Unit,
     onCapturePhoto: () -> Unit,
+    isCaptureEnabled: Boolean = true,
+    onToggleCamera: () -> Unit,
+    isCameraActive: Boolean,
     onToggleAI: () -> Unit,
     isAIActive: Boolean,
     onToggleLive: () -> Unit,
@@ -47,7 +51,25 @@ fun ControlsRow(
 
         CaptureButton(
             onClick = onCapturePhoto,
+            enabled = isCaptureEnabled,
         )
+
+        // Camera toggle button
+        Button(
+            onClick = onToggleCamera,
+            modifier = Modifier.aspectRatio(1f),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isCameraActive) AppColor.Yellow else AppColor.DeepBlue,
+            ),
+            shape = CircleShape,
+            contentPadding = PaddingValues(0.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.CameraAlt,
+                contentDescription = if (isCameraActive) "Stop Camera" else "Start Camera",
+                tint = Color.White,
+            )
+        }
 
         // AI toggle button
         Button(

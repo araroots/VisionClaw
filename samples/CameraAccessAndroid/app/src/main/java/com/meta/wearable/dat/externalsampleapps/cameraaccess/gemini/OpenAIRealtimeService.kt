@@ -263,6 +263,9 @@ class OpenAIRealtimeService : RealtimeAIService {
                 })
                 put("tools", ToolDeclarations.allDeclarationsOpenAIJSON())
                 put("tool_choice", "auto")
+                // Without this, conversation context grows unbounded within the session and
+                // both transcription and response latency creep up the longer the call runs.
+                put("truncation", "auto")
             })
         }
         // Send directly (not via sendExecutor) to ensure it's the first message

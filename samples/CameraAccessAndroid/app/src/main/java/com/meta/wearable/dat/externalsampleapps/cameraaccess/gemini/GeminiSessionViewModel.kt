@@ -12,6 +12,7 @@ import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsMa
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.OpenClawConnectionState
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.ToolCallRouter
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.ToolCallStatus
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.ToolResult
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.StreamingMode
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.wakeword.WakeWordListener
 import kotlinx.coroutines.Job
@@ -25,6 +26,7 @@ import kotlinx.coroutines.launch
 data class GeminiUiState(
     val isGeminiActive: Boolean = false,
     val isMicMuted: Boolean = false,
+    val isOpenClawActive: Boolean = false,
     val connectionState: GeminiConnectionState = GeminiConnectionState.Disconnected,
     val isModelSpeaking: Boolean = false,
     val errorMessage: String? = null,
@@ -190,6 +192,18 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
                 // silence countdown so a slow OpenClaw task doesn't get cut off.
                 followUpTimeoutJob?.cancel()
                 for (call in toolCall.functionCalls) {
+                    if (!_uiState.value.isOpenClawActive) {
+                        // Reject immediately instead of running the (potentially slow) agent
+                        // task -- OpenClaw has to be turned on explicitly first.
+                        service.sendToolResult(
+                            call.id,
+                            call.name,
+                            ToolResult.Failure(
+                                "OpenClaw is currently turned off. Tell the user to turn it on if they want you to take this action."
+                            ),
+                        )
+                        continue
+                    }
                     toolCallRouter?.handleToolCall(call) { callId, name, result ->
                         service.sendToolResult(callId, name, result)
                     }
@@ -291,6 +305,10 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
 
     fun toggleMicMute() {
         _uiState.value = _uiState.value.copy(isMicMuted = !_uiState.value.isMicMuted)
+    }
+
+    fun toggleOpenClaw() {
+        _uiState.value = _uiState.value.copy(isOpenClawActive = !_uiState.value.isOpenClawActive)
     }
 
     fun clearError() {

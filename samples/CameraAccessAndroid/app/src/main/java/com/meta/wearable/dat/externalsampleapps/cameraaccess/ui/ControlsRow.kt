@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
@@ -32,6 +33,8 @@ fun ControlsRow(
     isCameraActive: Boolean,
     onToggleAI: () -> Unit,
     isAIActive: Boolean,
+    onToggleOpenClaw: () -> Unit,
+    isOpenClawActive: Boolean,
     onToggleMute: () -> Unit,
     isMicMuted: Boolean,
     onToggleLive: () -> Unit,
@@ -88,6 +91,23 @@ fun ControlsRow(
             Icon(
                 imageVector = Icons.Default.AutoAwesome,
                 contentDescription = if (isAIActive) "Stop AI" else "Start AI",
+                tint = Color.White,
+            )
+        }
+
+        // OpenClaw toggle button
+        Button(
+            onClick = onToggleOpenClaw,
+            modifier = Modifier.aspectRatio(1f),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isOpenClawActive) AppColor.Green else AppColor.DeepBlue,
+            ),
+            shape = CircleShape,
+            contentPadding = PaddingValues(0.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Bolt,
+                contentDescription = if (isOpenClawActive) "Disable OpenClaw" else "Enable OpenClaw",
                 tint = Color.White,
             )
         }

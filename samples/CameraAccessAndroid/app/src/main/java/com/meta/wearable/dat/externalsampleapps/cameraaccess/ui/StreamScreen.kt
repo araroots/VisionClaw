@@ -212,6 +212,8 @@ fun StreamScreen(
                     }
                 },
                 isAIActive = geminiUiState.isGeminiActive,
+                onToggleOpenClaw = { geminiViewModel.toggleOpenClaw() },
+                isOpenClawActive = geminiUiState.isOpenClawActive,
                 onToggleMute = { geminiViewModel.toggleMicMute() },
                 isMicMuted = geminiUiState.isMicMuted,
                 onToggleLive = {

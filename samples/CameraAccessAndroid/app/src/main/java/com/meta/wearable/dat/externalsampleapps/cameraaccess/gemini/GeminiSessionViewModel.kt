@@ -146,7 +146,10 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
 
         service.onTurnComplete = {
             _uiState.value = _uiState.value.copy(userTranscript = "")
-            if (SettingsManager.wakeWordEnabled) {
+            // Don't start the silence countdown while a tool call is still running in the
+            // background (e.g. an OpenClaw task) -- the model's final spoken confirmation is
+            // still coming and can take much longer than the follow-up window.
+            if (SettingsManager.wakeWordEnabled && !_uiState.value.toolCallStatus.isActive) {
                 scheduleFollowUpTimeout()
             }
         }
@@ -183,6 +186,9 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
             toolCallRouter = ToolCallRouter(openClawBridge, viewModelScope)
 
             service.onToolCall = { toolCall ->
+                // A tool call means the turn isn't really over yet -- cancel any pending
+                // silence countdown so a slow OpenClaw task doesn't get cut off.
+                followUpTimeoutJob?.cancel()
                 for (call in toolCall.functionCalls) {
                     toolCallRouter?.handleToolCall(call) { callId, name, result ->
                         service.sendToolResult(callId, name, result)

@@ -55,6 +55,7 @@ class GeminiLiveService : RealtimeAIService {
     override var onOutputTranscription: ((String) -> Unit)? = null
     override var onToolCall: ((GeminiToolCall) -> Unit)? = null
     override var onToolCallCancellation: ((GeminiToolCallCancellation) -> Unit)? = null
+    override var onSessionResumptionUpdate: ((String) -> Unit)? = null
 
     // Latency tracking
     private var lastUserSpeechEnd: Long = 0
@@ -64,13 +65,14 @@ class GeminiLiveService : RealtimeAIService {
     private val sendExecutor = Executors.newSingleThreadExecutor()
     private var connectCallback: ((Boolean) -> Unit)? = null
     private var timeoutTimer: Timer? = null
+    private var resumptionHandle: String? = null
 
     private val client = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS)
         .pingInterval(10, TimeUnit.SECONDS)
         .build()
 
-    override fun connect(callback: (Boolean) -> Unit) {
+    override fun connect(resumptionHandle: String?, callback: (Boolean) -> Unit) {
         val url = GeminiConfig.websocketURL()
         if (url == null) {
             _connectionState.value = GeminiConnectionState.Error("No API key configured")
@@ -78,6 +80,7 @@ class GeminiLiveService : RealtimeAIService {
             return
         }
 
+        this.resumptionHandle = resumptionHandle
         _connectionState.value = GeminiConnectionState.Connecting
         connectCallback = callback
 
@@ -287,6 +290,12 @@ class GeminiLiveService : RealtimeAIService {
                 })
                 put("inputAudioTranscription", JSONObject())
                 put("outputAudioTranscription", JSONObject())
+                // Opts into session resumption tracking; if we already hold a handle from a
+                // prior connection, passing it here resumes that exact session (full context,
+                // not just replayed transcript text) instead of starting cold.
+                put("sessionResumption", JSONObject().apply {
+                    resumptionHandle?.let { put("handle", it) }
+                })
             })
         }
         // Send directly (not via sendExecutor) to ensure it's the first message
@@ -311,6 +320,20 @@ class GeminiLiveService : RealtimeAIService {
                 _connectionState.value = GeminiConnectionState.Disconnected
                 _isModelSpeaking.value = false
                 onDisconnected?.invoke("Server closing (time left: ${seconds}s)")
+                return
+            }
+
+            // Session resumption handle -- capture it so the next connect() can resume this
+            // exact session's full context instead of relying on the seedHistory replay hack.
+            if (json.has("sessionResumptionUpdate")) {
+                val update = json.getJSONObject("sessionResumptionUpdate")
+                if (update.optBoolean("resumable", false)) {
+                    val handle = update.optString("newHandle", "")
+                    if (handle.isNotEmpty()) {
+                        Log.d(TAG, "New session resumption handle received")
+                        onSessionResumptionUpdate?.invoke(handle)
+                    }
+                }
                 return
             }
 

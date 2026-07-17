@@ -61,6 +61,11 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
     // new connection is Ready.
     private var pendingChatMessage: String? = null
 
+    // Gemini Live's real session resumption handle (survives stopSession() like
+    // conversationHistory). Once we have one, it's used instead of seedHistory's transcript
+    // replay, which testing showed the model doesn't actually treat as real context.
+    private var sessionResumptionHandle: String? = null
+
     private var activeService: RealtimeAIService? = null
     private val openClawBridge = OpenClawBridge()
     private var toolCallRouter: ToolCallRouter? = null
@@ -201,6 +206,10 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
             }
         }
 
+        service.onSessionResumptionUpdate = { handle ->
+            sessionResumptionHandle = handle
+        }
+
         // Start session (OpenClaw connectivity is only checked once it's toggled on)
         viewModelScope.launch {
             // Wire tool call handling
@@ -247,7 +256,7 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
             }
 
             // Connect to the selected AI provider
-            service.connect { setupOk ->
+            service.connect(sessionResumptionHandle) { setupOk ->
                 if (!setupOk) {
                     val msg = when (val state = service.connectionState.value) {
                         is GeminiConnectionState.Error -> state.message
@@ -282,11 +291,12 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
                     refreshWakeWordListening()
                 }
 
-                // Seed the fresh connection with prior turns so the model has continuity across
-                // the reconnect instead of starting cold (neither backend supports true session
-                // resumption, so this is a client-side replay of context).
-                Log.d(TAG, "startSession: history has ${_conversationHistory.value.size} turn(s) to seed")
-                if (_conversationHistory.value.isNotEmpty()) {
+                // Only fall back to the transcript-replay hack when we don't already have a real
+                // resumption handle -- testing showed the model doesn't treat replayed
+                // clientContent turns as genuine context, so once resumption is available for
+                // this session, sending both would just add noise without helping.
+                if (sessionResumptionHandle == null && _conversationHistory.value.isNotEmpty()) {
+                    Log.d(TAG, "startSession: no resumption handle yet, seeding ${_conversationHistory.value.size} turn(s)")
                     service.seedHistory(_conversationHistory.value)
                 }
 

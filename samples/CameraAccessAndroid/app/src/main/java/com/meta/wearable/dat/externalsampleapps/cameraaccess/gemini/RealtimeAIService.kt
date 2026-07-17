@@ -24,7 +24,15 @@ interface RealtimeAIService {
     var onToolCall: ((GeminiToolCall) -> Unit)?
     var onToolCallCancellation: ((GeminiToolCallCancellation) -> Unit)?
 
-    fun connect(callback: (Boolean) -> Unit)
+    // Fired when the backend hands back a fresh resumption handle (Gemini Live only -- OpenAI
+    // Realtime has no equivalent here and never invokes this). The caller should hold onto the
+    // latest handle and pass it into the next connect() call to truly resume the same server
+    // side session/context, instead of faking continuity via seedHistory.
+    var onSessionResumptionUpdate: ((String) -> Unit)?
+
+    // resumptionHandle: if non-null (Gemini Live only), asks the server to resume that exact
+    // prior session instead of starting cold.
+    fun connect(resumptionHandle: String? = null, callback: (Boolean) -> Unit)
     fun disconnect()
     fun sendAudio(data: ByteArray)
     fun sendVideoFrame(bitmap: Bitmap)
@@ -32,7 +40,8 @@ interface RealtimeAIService {
     fun sendTextMessage(text: String)
 
     // Replays prior conversation turns into a freshly-connected session as context, without
-    // triggering a new model response -- used to fake continuity across a reconnect since
-    // neither backend supports true session resumption.
+    // triggering a new model response. Only meaningful when real session resumption isn't
+    // available (OpenAI Realtime, or Gemini's very first connection with no handle yet) --
+    // sending both would duplicate context that resumption already restored.
     fun seedHistory(turns: List<ConversationTurn>)
 }

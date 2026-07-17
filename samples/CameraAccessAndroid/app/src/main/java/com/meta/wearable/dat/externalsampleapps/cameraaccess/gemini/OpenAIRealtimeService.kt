@@ -50,6 +50,9 @@ class OpenAIRealtimeService : RealtimeAIService {
     override var onOutputTranscription: ((String) -> Unit)? = null
     override var onToolCall: ((GeminiToolCall) -> Unit)? = null
     override var onToolCallCancellation: ((GeminiToolCallCancellation) -> Unit)? = null
+    // No session resumption equivalent for OpenAI Realtime here -- this is never invoked;
+    // continuity relies entirely on seedHistory's manual replay for this backend.
+    override var onSessionResumptionUpdate: ((String) -> Unit)? = null
 
     private var webSocket: WebSocket? = null
     private val sendExecutor = Executors.newSingleThreadExecutor()
@@ -61,7 +64,7 @@ class OpenAIRealtimeService : RealtimeAIService {
         .pingInterval(10, TimeUnit.SECONDS)
         .build()
 
-    override fun connect(callback: (Boolean) -> Unit) {
+    override fun connect(resumptionHandle: String?, callback: (Boolean) -> Unit) {
         if (!OpenAIConfig.isConfigured) {
             _connectionState.value = GeminiConnectionState.Error("No API key configured")
             callback(false)

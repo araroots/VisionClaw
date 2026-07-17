@@ -63,6 +63,11 @@ class GeminiLiveService : RealtimeAIService {
 
     private var webSocket: WebSocket? = null
     private val sendExecutor = Executors.newSingleThreadExecutor()
+    // Video frames get their own executor -- JPEG compression is slow enough (tens to hundreds
+    // of ms) that sharing the audio executor let one frame's encoding delay a backlog of 100ms
+    // audio chunks queued behind it, compounding into growing transcription lag over a long
+    // continuous conversation.
+    private val videoSendExecutor = Executors.newSingleThreadExecutor()
     private var connectCallback: ((Boolean) -> Unit)? = null
     private var timeoutTimer: Timer? = null
     private var resumptionHandle: String? = null
@@ -169,7 +174,7 @@ class GeminiLiveService : RealtimeAIService {
 
     override fun sendVideoFrame(bitmap: Bitmap) {
         if (_connectionState.value != GeminiConnectionState.Ready) return
-        sendExecutor.execute {
+        videoSendExecutor.execute {
             val baos = ByteArrayOutputStream()
             bitmap.compress(Bitmap.CompressFormat.JPEG, GeminiConfig.VIDEO_JPEG_QUALITY, baos)
             val base64 = Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP)

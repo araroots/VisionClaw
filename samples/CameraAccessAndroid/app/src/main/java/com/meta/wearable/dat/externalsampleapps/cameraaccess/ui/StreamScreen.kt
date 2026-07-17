@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -142,6 +143,16 @@ fun StreamScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
+        // Background shown while waiting for the first video frame (instead of blank white)
+        if (streamUiState.videoFrame == null) {
+            Image(
+                painter = painterResource(id = R.drawable.stream_connecting_background),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        }
+
         // Video feed
         streamUiState.videoFrame?.let { videoFrame ->
             Image(

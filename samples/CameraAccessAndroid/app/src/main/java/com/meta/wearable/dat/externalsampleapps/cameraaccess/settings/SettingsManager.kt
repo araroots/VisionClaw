@@ -73,6 +73,16 @@ object SettingsManager {
         get() = prefs.getString("wakePhrase", null) ?: DEFAULT_WAKE_PHRASE
         set(value) = prefs.edit().putString("wakePhrase", value).apply()
 
+    // A second, separate wake phrase that turns OpenClaw on hands-free -- distinct from the AI's
+    // own wake word so the two can't be triggered by the same utterance.
+    var openClawWakeWordEnabled: Boolean
+        get() = prefs.getBoolean("openClawWakeWordEnabled", false)
+        set(value) = prefs.edit().putBoolean("openClawWakeWordEnabled", value).apply()
+
+    var openClawWakePhrase: String
+        get() = prefs.getString("openClawWakePhrase", null) ?: DEFAULT_OPENCLAW_WAKE_PHRASE
+        set(value) = prefs.edit().putString("openClawWakePhrase", value).apply()
+
     var continuousConversationEnabled: Boolean
         get() = prefs.getBoolean("continuousConversationEnabled", true)
         set(value) = prefs.edit().putBoolean("continuousConversationEnabled", value).apply()
@@ -109,6 +119,7 @@ object SettingsManager {
     }
 
     const val DEFAULT_WAKE_PHRASE = "Araguaia é Mestre"
+    const val DEFAULT_OPENCLAW_WAKE_PHRASE = "Ativar OpenClaw"
     const val DEFAULT_FRAME_RATE = 24
 
     const val DEFAULT_SYSTEM_PROMPT = """You are an AI assistant for someone wearing Meta Ray-Ban smart glasses. You can see through their camera and have a voice conversation. Keep responses concise and natural.

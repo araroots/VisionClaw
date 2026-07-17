@@ -79,13 +79,6 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
 
     var streamingMode: StreamingMode = StreamingMode.GLASSES
 
-    init {
-        wakeWordListener.onWakePhraseDetected = {
-            Log.d(TAG, "Wake phrase detected, starting session")
-            startSession()
-        }
-    }
-
     // Wake word only listens while the containing screen is on-screen and the AI isn't
     // already active -- call from the composable's mount/dispose so it never runs unattended.
     fun onScreenActive() {
@@ -99,8 +92,25 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
     }
 
     private fun refreshWakeWordListening() {
-        if (isScreenActive && SettingsManager.wakeWordEnabled && !_uiState.value.isGeminiActive) {
-            wakeWordListener.start(SettingsManager.wakePhrase)
+        if (isScreenActive && !_uiState.value.isGeminiActive) {
+            val triggers = mutableListOf<Pair<String, () -> Unit>>()
+            if (SettingsManager.wakeWordEnabled) {
+                triggers.add(SettingsManager.wakePhrase to {
+                    Log.d(TAG, "Wake phrase detected, starting session")
+                    startSession()
+                })
+            }
+            if (SettingsManager.openClawWakeWordEnabled) {
+                triggers.add(SettingsManager.openClawWakePhrase to {
+                    Log.d(TAG, "OpenClaw wake phrase detected, activating OpenClaw")
+                    activateOpenClawByVoice()
+                })
+            }
+            if (triggers.isNotEmpty()) {
+                wakeWordListener.start(triggers)
+            } else {
+                wakeWordListener.stop()
+            }
         } else {
             wakeWordListener.stop()
         }
@@ -375,6 +385,18 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
             }
         } else {
             openClawBridge.markInactive()
+        }
+    }
+
+    // Voice-triggered equivalent of tapping the OpenClaw button on -- idempotent (unlike
+    // toggleOpenClaw) so hearing the phrase again while it's already on is a no-op, not an
+    // accidental deactivation.
+    private fun activateOpenClawByVoice() {
+        if (_uiState.value.isOpenClawActive) return
+        _uiState.value = _uiState.value.copy(isOpenClawActive = true)
+        viewModelScope.launch {
+            openClawBridge.checkConnection()
+            openClawBridge.resetSession()
         }
     }
 

@@ -17,21 +17,26 @@ class WakeWordListener(private val context: Context) {
         private const val TAG = "WakeWordListener"
     }
 
+    private data class Trigger(val normalizedPhrase: String, val onDetected: () -> Unit)
+
     private var recognizer: SpeechRecognizer? = null
     private var isListening = false
     private var triggered = false
-    private var targetPhrase: String = ""
+    private var triggers: List<Trigger> = emptyList()
 
-    var onWakePhraseDetected: (() -> Unit)? = null
-
-    fun start(phrase: String) {
+    // Listens for any number of distinct phrases in the same recognition session (a single
+    // SpeechRecognizer instance is what's reliable on-device -- running two in parallel isn't),
+    // invoking whichever phrase's callback matches first.
+    fun start(phrases: List<Pair<String, () -> Unit>>) {
         if (isListening) return
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
             Log.w(TAG, "Speech recognition not available on this device")
             return
         }
-        targetPhrase = normalize(phrase)
-        if (targetPhrase.isEmpty()) return
+        triggers = phrases
+            .map { (phrase, callback) -> Trigger(normalize(phrase), callback) }
+            .filter { it.normalizedPhrase.isNotEmpty() }
+        if (triggers.isEmpty()) return
         isListening = true
         createAndStartRecognizer()
     }
@@ -91,11 +96,14 @@ class WakeWordListener(private val context: Context) {
         if (triggered) return
         val matches = bundle?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) ?: return
         for (candidate in matches) {
-            if (normalize(candidate).contains(targetPhrase)) {
-                Log.d(TAG, "Wake phrase detected: $candidate")
-                triggered = true
-                onWakePhraseDetected?.invoke()
-                return
+            val normalizedCandidate = normalize(candidate)
+            for (trigger in triggers) {
+                if (normalizedCandidate.contains(trigger.normalizedPhrase)) {
+                    Log.d(TAG, "Wake phrase detected: $candidate")
+                    triggered = true
+                    trigger.onDetected()
+                    return
+                }
             }
         }
     }

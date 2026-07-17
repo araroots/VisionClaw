@@ -60,6 +60,8 @@ fun SettingsScreen(
     var proactiveNotificationsEnabled by remember { mutableStateOf(SettingsManager.proactiveNotificationsEnabled) }
     var wakeWordEnabled by remember { mutableStateOf(SettingsManager.wakeWordEnabled) }
     var wakePhrase by remember { mutableStateOf(SettingsManager.wakePhrase) }
+    var openClawWakeWordEnabled by remember { mutableStateOf(SettingsManager.openClawWakeWordEnabled) }
+    var openClawWakePhrase by remember { mutableStateOf(SettingsManager.openClawWakePhrase) }
     var continuousConversationEnabled by remember { mutableStateOf(SettingsManager.continuousConversationEnabled) }
     var videoQuality by remember { mutableStateOf(SettingsManager.videoQuality) }
     var videoFrameRate by remember { mutableStateOf(SettingsManager.videoFrameRate.toString()) }
@@ -82,6 +84,8 @@ fun SettingsScreen(
         SettingsManager.proactiveNotificationsEnabled = proactiveNotificationsEnabled
         SettingsManager.wakeWordEnabled = wakeWordEnabled
         SettingsManager.wakePhrase = wakePhrase.trim().ifEmpty { SettingsManager.DEFAULT_WAKE_PHRASE }
+        SettingsManager.openClawWakeWordEnabled = openClawWakeWordEnabled
+        SettingsManager.openClawWakePhrase = openClawWakePhrase.trim().ifEmpty { SettingsManager.DEFAULT_OPENCLAW_WAKE_PHRASE }
         SettingsManager.continuousConversationEnabled = continuousConversationEnabled
         SettingsManager.videoQuality = videoQuality
         videoFrameRate.trim().toIntOrNull()?.let { SettingsManager.videoFrameRate = it }
@@ -104,6 +108,8 @@ fun SettingsScreen(
         proactiveNotificationsEnabled = SettingsManager.proactiveNotificationsEnabled
         wakeWordEnabled = SettingsManager.wakeWordEnabled
         wakePhrase = SettingsManager.wakePhrase
+        openClawWakeWordEnabled = SettingsManager.openClawWakeWordEnabled
+        openClawWakePhrase = SettingsManager.openClawWakePhrase
         continuousConversationEnabled = SettingsManager.continuousConversationEnabled
         videoQuality = SettingsManager.videoQuality
         videoFrameRate = SettingsManager.videoFrameRate.toString()
@@ -307,6 +313,33 @@ fun SettingsScreen(
                         onCheckedChange = { continuousConversationEnabled = it },
                     )
                 }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("OpenClaw Wake Word", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Say the phrase below to turn OpenClaw on hands-free, separate from the AI wake word.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = openClawWakeWordEnabled,
+                    onCheckedChange = { openClawWakeWordEnabled = it },
+                )
+            }
+            if (openClawWakeWordEnabled) {
+                MonoTextField(
+                    value = openClawWakePhrase,
+                    onValueChange = { openClawWakePhrase = it },
+                    label = "OpenClaw Wake Phrase",
+                    placeholder = SettingsManager.DEFAULT_OPENCLAW_WAKE_PHRASE,
+                )
             }
 
             // Video Quality

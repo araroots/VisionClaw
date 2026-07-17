@@ -26,18 +26,18 @@ class AudioManager {
     private val accumulateLock = Any()
 
     @SuppressLint("MissingPermission")
-    fun startCapture() {
+    fun startCapture(inputSampleRate: Int, outputSampleRate: Int) {
         if (isCapturing) return
 
         val bufferSize = AudioRecord.getMinBufferSize(
-            GeminiConfig.INPUT_AUDIO_SAMPLE_RATE,
+            inputSampleRate,
             AudioFormat.CHANNEL_IN_MONO,
             AudioFormat.ENCODING_PCM_16BIT
         )
 
         audioRecord = AudioRecord(
             MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-            GeminiConfig.INPUT_AUDIO_SAMPLE_RATE,
+            inputSampleRate,
             AudioFormat.CHANNEL_IN_MONO,
             AudioFormat.ENCODING_PCM_16BIT,
             bufferSize
@@ -52,7 +52,7 @@ class AudioManager {
             )
             .setAudioFormat(
                 AudioFormat.Builder()
-                    .setSampleRate(GeminiConfig.OUTPUT_AUDIO_SAMPLE_RATE)
+                    .setSampleRate(outputSampleRate)
                     .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                     .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
                     .build()
@@ -60,7 +60,7 @@ class AudioManager {
             .setTransferMode(AudioTrack.MODE_STREAM)
             .setBufferSizeInBytes(
                 AudioTrack.getMinBufferSize(
-                    GeminiConfig.OUTPUT_AUDIO_SAMPLE_RATE,
+                    outputSampleRate,
                     AudioFormat.CHANNEL_OUT_MONO,
                     AudioFormat.ENCODING_PCM_16BIT
                 ) * 2
@@ -97,7 +97,7 @@ class AudioManager {
             }
         }, "audio-capture").also { it.start() }
 
-        Log.d(TAG, "Audio capture started (16kHz mono PCM16)")
+        Log.d(TAG, "Audio capture started (in=${inputSampleRate}Hz, out=${outputSampleRate}Hz mono PCM16)")
     }
 
     fun playAudio(data: ByteArray) {

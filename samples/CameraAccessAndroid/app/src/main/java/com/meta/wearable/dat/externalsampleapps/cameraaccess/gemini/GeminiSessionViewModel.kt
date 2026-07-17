@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.OpenClawBridge
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.OpenClawEventClient
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.AIProvider
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.OpenClawConnectionState
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.ToolCallRouter
@@ -38,7 +39,7 @@ class GeminiSessionViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(GeminiUiState())
     val uiState: StateFlow<GeminiUiState> = _uiState.asStateFlow()
 
-    private val geminiService = GeminiLiveService()
+    private var activeService: RealtimeAIService? = null
     private val openClawBridge = OpenClawBridge()
     private var toolCallRouter: ToolCallRouter? = null
     private val audioManager = AudioManager()
@@ -51,48 +52,61 @@ class GeminiSessionViewModel : ViewModel() {
     fun startSession() {
         if (_uiState.value.isGeminiActive) return
 
-        if (!GeminiConfig.isConfigured) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = "Gemini API key not configured. Open Settings and add your key from https://aistudio.google.com/apikey"
-            )
+        val provider = SettingsManager.aiProvider
+        val configured = when (provider) {
+            AIProvider.GEMINI -> GeminiConfig.isConfigured
+            AIProvider.OPENAI -> OpenAIConfig.isConfigured
+        }
+        if (!configured) {
+            val msg = when (provider) {
+                AIProvider.GEMINI -> "Gemini API key not configured. Open Settings and add your key from https://aistudio.google.com/apikey"
+                AIProvider.OPENAI -> "OpenAI API key not configured. Open Settings and add your key from https://platform.openai.com/api-keys"
+            }
+            _uiState.value = _uiState.value.copy(errorMessage = msg)
             return
         }
+
+        val service: RealtimeAIService = when (provider) {
+            AIProvider.GEMINI -> GeminiLiveService()
+            AIProvider.OPENAI -> OpenAIRealtimeService()
+        }
+        activeService = service
 
         _uiState.value = _uiState.value.copy(isGeminiActive = true)
 
         // Wire audio callbacks
         audioManager.onAudioCaptured = lambda@{ data ->
             // Phone mode: mute mic while model speaks to prevent echo
-            if (streamingMode == StreamingMode.PHONE && geminiService.isModelSpeaking.value) return@lambda
-            geminiService.sendAudio(data)
+            if (streamingMode == StreamingMode.PHONE && service.isModelSpeaking.value) return@lambda
+            service.sendAudio(data)
         }
 
-        geminiService.onAudioReceived = { data ->
+        service.onAudioReceived = { data ->
             audioManager.playAudio(data)
         }
 
-        geminiService.onInterrupted = {
+        service.onInterrupted = {
             audioManager.stopPlayback()
         }
 
-        geminiService.onTurnComplete = {
+        service.onTurnComplete = {
             _uiState.value = _uiState.value.copy(userTranscript = "")
         }
 
-        geminiService.onInputTranscription = { text ->
+        service.onInputTranscription = { text ->
             _uiState.value = _uiState.value.copy(
                 userTranscript = _uiState.value.userTranscript + text,
                 aiTranscript = ""
             )
         }
 
-        geminiService.onOutputTranscription = { text ->
+        service.onOutputTranscription = { text ->
             _uiState.value = _uiState.value.copy(
                 aiTranscript = _uiState.value.aiTranscript + text
             )
         }
 
-        geminiService.onDisconnected = { reason ->
+        service.onDisconnected = { reason ->
             if (_uiState.value.isGeminiActive) {
                 stopSession()
                 _uiState.value = _uiState.value.copy(
@@ -109,15 +123,15 @@ class GeminiSessionViewModel : ViewModel() {
             // Wire tool call handling
             toolCallRouter = ToolCallRouter(openClawBridge, viewModelScope)
 
-            geminiService.onToolCall = { toolCall ->
+            service.onToolCall = { toolCall ->
                 for (call in toolCall.functionCalls) {
-                    toolCallRouter?.handleToolCall(call) { response ->
-                        geminiService.sendToolResponse(response)
+                    toolCallRouter?.handleToolCall(call) { callId, name, result ->
+                        service.sendToolResult(callId, name, result)
                     }
                 }
             }
 
-            geminiService.onToolCallCancellation = { cancellation ->
+            service.onToolCallCancellation = { cancellation ->
                 toolCallRouter?.cancelToolCalls(cancellation.ids)
             }
 
@@ -126,23 +140,23 @@ class GeminiSessionViewModel : ViewModel() {
                 while (isActive) {
                     delay(100)
                     _uiState.value = _uiState.value.copy(
-                        connectionState = geminiService.connectionState.value,
-                        isModelSpeaking = geminiService.isModelSpeaking.value,
+                        connectionState = service.connectionState.value,
+                        isModelSpeaking = service.isModelSpeaking.value,
                         toolCallStatus = openClawBridge.lastToolCallStatus.value,
                         openClawConnectionState = openClawBridge.connectionState.value,
                     )
                 }
             }
 
-            // Connect to Gemini
-            geminiService.connect { setupOk ->
+            // Connect to the selected AI provider
+            service.connect { setupOk ->
                 if (!setupOk) {
-                    val msg = when (val state = geminiService.connectionState.value) {
+                    val msg = when (val state = service.connectionState.value) {
                         is GeminiConnectionState.Error -> state.message
-                        else -> "Failed to connect to Gemini"
+                        else -> "Failed to connect"
                     }
                     _uiState.value = _uiState.value.copy(errorMessage = msg)
-                    geminiService.disconnect()
+                    service.disconnect()
                     stateObservationJob?.cancel()
                     _uiState.value = _uiState.value.copy(
                         isGeminiActive = false,
@@ -153,12 +167,12 @@ class GeminiSessionViewModel : ViewModel() {
 
                 // Start mic capture
                 try {
-                    audioManager.startCapture()
+                    audioManager.startCapture(service.inputSampleRate, service.outputSampleRate)
                 } catch (e: Exception) {
                     _uiState.value = _uiState.value.copy(
                         errorMessage = "Mic capture failed: ${e.message}"
                     )
-                    geminiService.disconnect()
+                    service.disconnect()
                     stateObservationJob?.cancel()
                     _uiState.value = _uiState.value.copy(
                         isGeminiActive = false,
@@ -171,7 +185,7 @@ class GeminiSessionViewModel : ViewModel() {
                     eventClient.onNotification = { text ->
                         val state = _uiState.value
                         if (state.isGeminiActive && state.connectionState == GeminiConnectionState.Ready) {
-                            geminiService.sendTextMessage(text)
+                            service.sendTextMessage(text)
                         }
                     }
                     eventClient.connect()
@@ -185,7 +199,8 @@ class GeminiSessionViewModel : ViewModel() {
         toolCallRouter?.cancelAll()
         toolCallRouter = null
         audioManager.stopCapture()
-        geminiService.disconnect()
+        activeService?.disconnect()
+        activeService = null
         stateObservationJob?.cancel()
         stateObservationJob = null
         _uiState.value = GeminiUiState()
@@ -198,7 +213,7 @@ class GeminiSessionViewModel : ViewModel() {
         val now = System.currentTimeMillis()
         if (now - lastVideoFrameTime < GeminiConfig.VIDEO_FRAME_INTERVAL_MS) return
         lastVideoFrameTime = now
-        geminiService.sendVideoFrame(bitmap)
+        activeService?.sendVideoFrame(bitmap)
     }
 
     fun clearError() {

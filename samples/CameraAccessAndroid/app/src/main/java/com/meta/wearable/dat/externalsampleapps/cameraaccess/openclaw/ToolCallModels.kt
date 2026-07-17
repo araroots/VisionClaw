@@ -102,25 +102,47 @@ sealed class OpenClawConnectionState {
 // Tool Declarations (for Gemini setup message)
 
 object ToolDeclarations {
+    private const val EXECUTE_DESCRIPTION = "Your only way to take action. You have no memory, storage, or ability to do anything on your own -- use this tool for everything: sending messages, searching the web, adding to lists, setting reminders, creating notes, research, drafts, scheduling, smart home control, app interactions, or any request that goes beyond answering a question. When in doubt, use this tool."
+    private const val TASK_ARG_DESCRIPTION = "Clear, detailed description of what to do. Include all relevant context: names, content, platforms, quantities, etc."
+
     fun allDeclarationsJSON(): JSONArray {
         return JSONArray().put(executeJSON())
+    }
+
+    // OpenAI Realtime tools are a flat list of {type: "function", name, description, parameters},
+    // unlike Gemini's nested {functionDeclarations: [...]}.
+    fun allDeclarationsOpenAIJSON(): JSONArray {
+        return JSONArray().put(executeOpenAIJSON())
     }
 
     private fun executeJSON(): JSONObject {
         return JSONObject().apply {
             put("name", "execute")
-            put("description", "Your only way to take action. You have no memory, storage, or ability to do anything on your own -- use this tool for everything: sending messages, searching the web, adding to lists, setting reminders, creating notes, research, drafts, scheduling, smart home control, app interactions, or any request that goes beyond answering a question. When in doubt, use this tool.")
-            put("parameters", JSONObject().apply {
-                put("type", "object")
-                put("properties", JSONObject().apply {
-                    put("task", JSONObject().apply {
-                        put("type", "string")
-                        put("description", "Clear, detailed description of what to do. Include all relevant context: names, content, platforms, quantities, etc.")
-                    })
-                })
-                put("required", JSONArray().put("task"))
-            })
+            put("description", EXECUTE_DESCRIPTION)
+            put("parameters", executeParametersJSON())
             put("behavior", "BLOCKING")
+        }
+    }
+
+    private fun executeOpenAIJSON(): JSONObject {
+        return JSONObject().apply {
+            put("type", "function")
+            put("name", "execute")
+            put("description", EXECUTE_DESCRIPTION)
+            put("parameters", executeParametersJSON())
+        }
+    }
+
+    private fun executeParametersJSON(): JSONObject {
+        return JSONObject().apply {
+            put("type", "object")
+            put("properties", JSONObject().apply {
+                put("task", JSONObject().apply {
+                    put("type", "string")
+                    put("description", TASK_ARG_DESCRIPTION)
+                })
+            })
+            put("required", JSONArray().put("task"))
         }
     }
 }

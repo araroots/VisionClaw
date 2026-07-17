@@ -15,6 +15,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.AIProvider
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,7 +45,9 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var aiProvider by remember { mutableStateOf(SettingsManager.aiProvider) }
     var geminiAPIKey by remember { mutableStateOf(SettingsManager.geminiAPIKey) }
+    var openaiAPIKey by remember { mutableStateOf(SettingsManager.openaiAPIKey) }
     var systemPrompt by remember { mutableStateOf(SettingsManager.geminiSystemPrompt) }
     var openClawHost by remember { mutableStateOf(SettingsManager.openClawHost) }
     var openClawPort by remember { mutableStateOf(SettingsManager.openClawPort.toString()) }
@@ -54,7 +59,9 @@ fun SettingsScreen(
     var showResetDialog by remember { mutableStateOf(false) }
 
     fun save() {
+        SettingsManager.aiProvider = aiProvider
         SettingsManager.geminiAPIKey = geminiAPIKey.trim()
+        SettingsManager.openaiAPIKey = openaiAPIKey.trim()
         SettingsManager.geminiSystemPrompt = systemPrompt.trim()
         SettingsManager.openClawHost = openClawHost.trim()
         openClawPort.trim().toIntOrNull()?.let { SettingsManager.openClawPort = it }
@@ -66,7 +73,9 @@ fun SettingsScreen(
     }
 
     fun reload() {
+        aiProvider = SettingsManager.aiProvider
         geminiAPIKey = SettingsManager.geminiAPIKey
+        openaiAPIKey = SettingsManager.openaiAPIKey
         systemPrompt = SettingsManager.geminiSystemPrompt
         openClawHost = SettingsManager.openClawHost
         openClawPort = SettingsManager.openClawPort.toString()
@@ -98,14 +107,44 @@ fun SettingsScreen(
                 .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Gemini section
-            SectionHeader("Gemini API")
-            MonoTextField(
-                value = geminiAPIKey,
-                onValueChange = { geminiAPIKey = it },
-                label = "API Key",
-                placeholder = "Enter Gemini API key",
-            )
+            // AI provider section
+            SectionHeader("AI Provider")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                AIProvider.entries.forEach { provider ->
+                    val selected = aiProvider == provider
+                    Button(
+                        onClick = { aiProvider = provider },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                    ) {
+                        Text(if (provider == AIProvider.GEMINI) "Gemini" else "ChatGPT")
+                    }
+                }
+            }
+
+            if (aiProvider == AIProvider.GEMINI) {
+                SectionHeader("Gemini API")
+                MonoTextField(
+                    value = geminiAPIKey,
+                    onValueChange = { geminiAPIKey = it },
+                    label = "API Key",
+                    placeholder = "Enter Gemini API key",
+                )
+            } else {
+                SectionHeader("OpenAI API")
+                MonoTextField(
+                    value = openaiAPIKey,
+                    onValueChange = { openaiAPIKey = it },
+                    label = "API Key",
+                    placeholder = "Enter OpenAI API key",
+                )
+            }
 
             SectionHeader("System Prompt")
             OutlinedTextField(

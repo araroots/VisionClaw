@@ -13,9 +13,21 @@ object SettingsManager {
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
+    var aiProvider: AIProvider
+        get() = try {
+            AIProvider.valueOf(prefs.getString("aiProvider", null) ?: AIProvider.GEMINI.name)
+        } catch (e: IllegalArgumentException) {
+            AIProvider.GEMINI
+        }
+        set(value) = prefs.edit().putString("aiProvider", value.name).apply()
+
     var geminiAPIKey: String
         get() = prefs.getString("geminiAPIKey", null) ?: Secrets.geminiAPIKey
         set(value) = prefs.edit().putString("geminiAPIKey", value).apply()
+
+    var openaiAPIKey: String
+        get() = prefs.getString("openaiAPIKey", null) ?: Secrets.openaiAPIKey
+        set(value) = prefs.edit().putString("openaiAPIKey", value).apply()
 
     var geminiSystemPrompt: String
         get() = prefs.getString("geminiSystemPrompt", null) ?: DEFAULT_SYSTEM_PROMPT

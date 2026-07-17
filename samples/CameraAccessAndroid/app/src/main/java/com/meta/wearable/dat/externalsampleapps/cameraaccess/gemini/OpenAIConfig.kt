@@ -14,6 +14,11 @@ object OpenAIConfig {
 
     const val VIDEO_JPEG_QUALITY = 50
 
+    // Unlike Gemini's dedicated realtimeInput.video channel, OpenAI treats each frame as a
+    // conversation.item.create -- a heavier operation not meant for near-continuous streaming.
+    // Space these out further to avoid disrupting in-progress audio responses.
+    const val VIDEO_FRAME_INTERVAL_MS = 4000L
+
     val apiKey: String
         get() = SettingsManager.openaiAPIKey
 

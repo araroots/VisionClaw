@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -30,6 +32,8 @@ fun ControlsRow(
     isCameraActive: Boolean,
     onToggleAI: () -> Unit,
     isAIActive: Boolean,
+    onToggleMute: () -> Unit,
+    isMicMuted: Boolean,
     onToggleLive: () -> Unit,
     isLiveActive: Boolean,
     modifier: Modifier = Modifier,
@@ -84,6 +88,23 @@ fun ControlsRow(
             Icon(
                 imageVector = Icons.Default.AutoAwesome,
                 contentDescription = if (isAIActive) "Stop AI" else "Start AI",
+                tint = Color.White,
+            )
+        }
+
+        // Mic mute toggle button
+        Button(
+            onClick = onToggleMute,
+            modifier = Modifier.aspectRatio(1f),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isMicMuted) AppColor.Red else AppColor.DeepBlue,
+            ),
+            shape = CircleShape,
+            contentPadding = PaddingValues(0.dp),
+        ) {
+            Icon(
+                imageVector = if (isMicMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                contentDescription = if (isMicMuted) "Unmute Mic" else "Mute Mic",
                 tint = Color.White,
             )
         }

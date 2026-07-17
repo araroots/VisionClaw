@@ -169,6 +169,8 @@ fun StreamScreen(
                     }
                 },
                 isAIActive = geminiUiState.isGeminiActive,
+                onToggleMute = { geminiViewModel.toggleMicMute() },
+                isMicMuted = geminiUiState.isMicMuted,
                 onToggleLive = {
                     if (webrtcUiState.isActive) {
                         webrtcViewModel.stopSession()

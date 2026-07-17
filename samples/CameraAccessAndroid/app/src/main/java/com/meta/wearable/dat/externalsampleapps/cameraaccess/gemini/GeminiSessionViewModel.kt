@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 
 data class GeminiUiState(
     val isGeminiActive: Boolean = false,
+    val isMicMuted: Boolean = false,
     val connectionState: GeminiConnectionState = GeminiConnectionState.Disconnected,
     val isModelSpeaking: Boolean = false,
     val errorMessage: String? = null,
@@ -76,6 +77,7 @@ class GeminiSessionViewModel : ViewModel() {
 
         // Wire audio callbacks
         audioManager.onAudioCaptured = lambda@{ data ->
+            if (_uiState.value.isMicMuted) return@lambda
             // Phone mode: mute mic while model speaks to prevent echo
             if (streamingMode == StreamingMode.PHONE && service.isModelSpeaking.value) return@lambda
             service.sendAudio(data)
@@ -210,10 +212,15 @@ class GeminiSessionViewModel : ViewModel() {
         if (!SettingsManager.videoStreamingEnabled) return
         if (!_uiState.value.isGeminiActive) return
         if (_uiState.value.connectionState != GeminiConnectionState.Ready) return
+        val service = activeService ?: return
         val now = System.currentTimeMillis()
-        if (now - lastVideoFrameTime < GeminiConfig.VIDEO_FRAME_INTERVAL_MS) return
+        if (now - lastVideoFrameTime < service.videoFrameIntervalMs) return
         lastVideoFrameTime = now
-        activeService?.sendVideoFrame(bitmap)
+        service.sendVideoFrame(bitmap)
+    }
+
+    fun toggleMicMute() {
+        _uiState.value = _uiState.value.copy(isMicMuted = !_uiState.value.isMicMuted)
     }
 
     fun clearError() {

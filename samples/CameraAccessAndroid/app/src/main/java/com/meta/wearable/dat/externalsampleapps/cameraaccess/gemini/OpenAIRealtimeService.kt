@@ -40,6 +40,7 @@ class OpenAIRealtimeService : RealtimeAIService {
 
     override val inputSampleRate = OpenAIConfig.INPUT_AUDIO_SAMPLE_RATE
     override val outputSampleRate = OpenAIConfig.OUTPUT_AUDIO_SAMPLE_RATE
+    override val videoFrameIntervalMs = OpenAIConfig.VIDEO_FRAME_INTERVAL_MS
 
     override var onAudioReceived: ((ByteArray) -> Unit)? = null
     override var onTurnComplete: (() -> Unit)? = null
@@ -155,6 +156,8 @@ class OpenAIRealtimeService : RealtimeAIService {
 
     override fun sendVideoFrame(bitmap: Bitmap) {
         if (_connectionState.value != GeminiConnectionState.Ready) return
+        // Sending a frame while the model is speaking interrupts its audio response.
+        if (_isModelSpeaking.value) return
         sendExecutor.execute {
             val baos = ByteArrayOutputStream()
             bitmap.compress(Bitmap.CompressFormat.JPEG, OpenAIConfig.VIDEO_JPEG_QUALITY, baos)

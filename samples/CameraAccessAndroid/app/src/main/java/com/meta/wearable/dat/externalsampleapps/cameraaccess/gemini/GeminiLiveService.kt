@@ -45,6 +45,7 @@ class GeminiLiveService : RealtimeAIService {
 
     override val inputSampleRate = GeminiConfig.INPUT_AUDIO_SAMPLE_RATE
     override val outputSampleRate = GeminiConfig.OUTPUT_AUDIO_SAMPLE_RATE
+    override val videoFrameIntervalMs = GeminiConfig.VIDEO_FRAME_INTERVAL_MS
 
     override var onAudioReceived: ((ByteArray) -> Unit)? = null
     override var onTurnComplete: (() -> Unit)? = null

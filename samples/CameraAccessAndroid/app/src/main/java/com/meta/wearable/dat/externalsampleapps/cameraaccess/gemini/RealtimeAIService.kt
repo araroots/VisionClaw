@@ -13,6 +13,7 @@ interface RealtimeAIService {
 
     val inputSampleRate: Int
     val outputSampleRate: Int
+    val videoFrameIntervalMs: Long
 
     var onAudioReceived: ((ByteArray) -> Unit)?
     var onTurnComplete: (() -> Unit)?

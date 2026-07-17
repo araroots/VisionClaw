@@ -24,8 +24,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -37,10 +40,28 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.meta.wearable.dat.camera.types.StreamSessionState
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.R
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini.GeminiSessionViewModel
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.StreamViewModel
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.StreamingMode
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.wearables.WearablesViewModel
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.webrtc.WebRTCSessionViewModel
+
+// Combines brightness (-1..1), contrast (0.5..2) and saturation (0..2) into a single matrix
+// so the live preview can be adjusted without touching the frames sent to the AI/OpenClaw/WebRTC.
+private fun imageAdjustmentColorMatrix(brightness: Float, contrast: Float, saturation: Float): ColorMatrix {
+    val saturationMatrix = ColorMatrix().apply { setToSaturation(saturation) }
+    val translate = (1 - contrast) * 0.5f * 255f + brightness * 255f
+    val contrastBrightnessMatrix = ColorMatrix(
+        floatArrayOf(
+            contrast, 0f, 0f, 0f, translate,
+            0f, contrast, 0f, 0f, translate,
+            0f, 0f, contrast, 0f, translate,
+            0f, 0f, 0f, 1f, 0f,
+        )
+    )
+    saturationMatrix.timesAssign(contrastBrightnessMatrix)
+    return saturationMatrix
+}
 
 @Composable
 fun StreamScreen(
@@ -112,6 +133,14 @@ fun StreamScreen(
         }
     }
 
+    val imageColorMatrix = remember {
+        imageAdjustmentColorMatrix(
+            brightness = SettingsManager.imageBrightness,
+            contrast = SettingsManager.imageContrast,
+            saturation = SettingsManager.imageSaturation,
+        )
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         // Video feed
         streamUiState.videoFrame?.let { videoFrame ->
@@ -120,6 +149,7 @@ fun StreamScreen(
                 contentDescription = stringResource(R.string.live_stream),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
+                colorFilter = ColorFilter.colorMatrix(imageColorMatrix),
             )
         }
 

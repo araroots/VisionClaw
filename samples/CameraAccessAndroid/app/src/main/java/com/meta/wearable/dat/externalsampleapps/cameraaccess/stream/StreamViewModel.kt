@@ -30,11 +30,11 @@ import com.meta.wearable.dat.camera.types.PhotoData
 import com.meta.wearable.dat.camera.types.StreamConfiguration
 import com.meta.wearable.dat.camera.types.StreamSessionState
 import com.meta.wearable.dat.camera.types.VideoFrame
-import com.meta.wearable.dat.camera.types.VideoQuality
 import com.meta.wearable.dat.core.Wearables
 import com.meta.wearable.dat.core.selectors.DeviceSelector
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini.GeminiSessionViewModel
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.phone.PhoneCameraManager
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.wearables.WearablesViewModel
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.webrtc.WebRTCSessionViewModel
 import java.io.ByteArrayInputStream
@@ -84,7 +84,10 @@ class StreamViewModel(
         Wearables.startStreamSession(
                 getApplication(),
                 deviceSelector,
-                StreamConfiguration(videoQuality = VideoQuality.MEDIUM, 24),
+                StreamConfiguration(
+                    videoQuality = SettingsManager.videoQuality,
+                    SettingsManager.videoFrameRate,
+                ),
             )
             .also { streamSession = it }
     _uiState.update { it.copy(streamingMode = StreamingMode.GLASSES) }

@@ -2,6 +2,7 @@ package com.meta.wearable.dat.externalsampleapps.cameraaccess.settings
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.meta.wearable.dat.camera.types.VideoQuality
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.Secrets
 
 object SettingsManager {
@@ -76,11 +77,39 @@ object SettingsManager {
         get() = prefs.getBoolean("continuousConversationEnabled", true)
         set(value) = prefs.edit().putBoolean("continuousConversationEnabled", value).apply()
 
+    var videoQuality: VideoQuality
+        get() = try {
+            VideoQuality.valueOf(prefs.getString("videoQuality", null) ?: VideoQuality.MEDIUM.name)
+        } catch (e: IllegalArgumentException) {
+            VideoQuality.MEDIUM
+        }
+        set(value) = prefs.edit().putString("videoQuality", value.name).apply()
+
+    var videoFrameRate: Int
+        get() {
+            val stored = prefs.getInt("videoFrameRate", 0)
+            return if (stored != 0) stored else DEFAULT_FRAME_RATE
+        }
+        set(value) = prefs.edit().putInt("videoFrameRate", value).apply()
+
+    var imageBrightness: Float
+        get() = prefs.getFloat("imageBrightness", 0f)
+        set(value) = prefs.edit().putFloat("imageBrightness", value).apply()
+
+    var imageContrast: Float
+        get() = prefs.getFloat("imageContrast", 1f)
+        set(value) = prefs.edit().putFloat("imageContrast", value).apply()
+
+    var imageSaturation: Float
+        get() = prefs.getFloat("imageSaturation", 1f)
+        set(value) = prefs.edit().putFloat("imageSaturation", value).apply()
+
     fun resetAll() {
         prefs.edit().clear().apply()
     }
 
     const val DEFAULT_WAKE_PHRASE = "Araguaia é Mestre"
+    const val DEFAULT_FRAME_RATE = 24
 
     const val DEFAULT_SYSTEM_PROMPT = """You are an AI assistant for someone wearing Meta Ray-Ban smart glasses. You can see through their camera and have a voice conversation. Keep responses concise and natural.
 

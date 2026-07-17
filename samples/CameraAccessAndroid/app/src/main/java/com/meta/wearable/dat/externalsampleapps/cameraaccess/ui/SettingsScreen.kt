@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.meta.wearable.dat.camera.types.VideoQuality
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.AIProvider
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
 
@@ -59,6 +61,11 @@ fun SettingsScreen(
     var wakeWordEnabled by remember { mutableStateOf(SettingsManager.wakeWordEnabled) }
     var wakePhrase by remember { mutableStateOf(SettingsManager.wakePhrase) }
     var continuousConversationEnabled by remember { mutableStateOf(SettingsManager.continuousConversationEnabled) }
+    var videoQuality by remember { mutableStateOf(SettingsManager.videoQuality) }
+    var videoFrameRate by remember { mutableStateOf(SettingsManager.videoFrameRate.toString()) }
+    var imageBrightness by remember { mutableStateOf(SettingsManager.imageBrightness) }
+    var imageContrast by remember { mutableStateOf(SettingsManager.imageContrast) }
+    var imageSaturation by remember { mutableStateOf(SettingsManager.imageSaturation) }
     var showResetDialog by remember { mutableStateOf(false) }
 
     fun save() {
@@ -76,6 +83,11 @@ fun SettingsScreen(
         SettingsManager.wakeWordEnabled = wakeWordEnabled
         SettingsManager.wakePhrase = wakePhrase.trim().ifEmpty { SettingsManager.DEFAULT_WAKE_PHRASE }
         SettingsManager.continuousConversationEnabled = continuousConversationEnabled
+        SettingsManager.videoQuality = videoQuality
+        videoFrameRate.trim().toIntOrNull()?.let { SettingsManager.videoFrameRate = it }
+        SettingsManager.imageBrightness = imageBrightness
+        SettingsManager.imageContrast = imageContrast
+        SettingsManager.imageSaturation = imageSaturation
     }
 
     fun reload() {
@@ -93,6 +105,11 @@ fun SettingsScreen(
         wakeWordEnabled = SettingsManager.wakeWordEnabled
         wakePhrase = SettingsManager.wakePhrase
         continuousConversationEnabled = SettingsManager.continuousConversationEnabled
+        videoQuality = SettingsManager.videoQuality
+        videoFrameRate = SettingsManager.videoFrameRate.toString()
+        imageBrightness = SettingsManager.imageBrightness
+        imageContrast = SettingsManager.imageContrast
+        imageSaturation = SettingsManager.imageSaturation
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -292,6 +309,55 @@ fun SettingsScreen(
                 }
             }
 
+            // Video Quality
+            SectionHeader("Video Quality")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                VideoQuality.entries.forEach { quality ->
+                    val selected = videoQuality == quality
+                    Button(
+                        onClick = { videoQuality = quality },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                    ) {
+                        Text(quality.name)
+                    }
+                }
+            }
+            MonoTextField(
+                value = videoFrameRate,
+                onValueChange = { videoFrameRate = it },
+                label = "Frame Rate (fps)",
+                placeholder = SettingsManager.DEFAULT_FRAME_RATE.toString(),
+                keyboardType = KeyboardType.Number,
+            )
+
+            // Image adjustments (applied to the live preview only)
+            SectionHeader("Image")
+            LabeledSlider(
+                label = "Brightness",
+                value = imageBrightness,
+                onValueChange = { imageBrightness = it },
+                valueRange = -1f..1f,
+            )
+            LabeledSlider(
+                label = "Contrast",
+                value = imageContrast,
+                onValueChange = { imageContrast = it },
+                valueRange = 0.5f..2f,
+            )
+            LabeledSlider(
+                label = "Saturation",
+                value = imageSaturation,
+                onValueChange = { imageSaturation = it },
+                valueRange = 0f..2f,
+            )
+
             // Reset
             TextButton(onClick = { showResetDialog = true }) {
                 Text("Reset to Defaults", color = Color.Red)
@@ -351,4 +417,31 @@ private fun MonoTextField(
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
     )
+}
+
+@Composable
+private fun LabeledSlider(
+    label: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                String.format("%.2f", value),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = valueRange,
+        )
+    }
 }

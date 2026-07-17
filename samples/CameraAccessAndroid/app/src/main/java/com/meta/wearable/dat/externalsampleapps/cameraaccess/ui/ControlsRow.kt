@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CameraAlt
@@ -41,6 +42,8 @@ fun ControlsRow(
     isMicMuted: Boolean,
     onToggleLive: () -> Unit,
     isLiveActive: Boolean,
+    onToggleChat: () -> Unit,
+    isChatOpen: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -100,6 +103,23 @@ fun ControlsRow(
                 Icon(
                     imageVector = if (isMicMuted) Icons.Default.MicOff else Icons.Default.Mic,
                     contentDescription = if (isMicMuted) "Unmute Mic" else "Mute Mic",
+                    tint = Color.White,
+                )
+            }
+
+            // Chat panel toggle button
+            Button(
+                onClick = onToggleChat,
+                modifier = Modifier.aspectRatio(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isChatOpen) AppColor.Green else AppColor.DeepBlue,
+                ),
+                shape = CircleShape,
+                contentPadding = PaddingValues(0.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Chat,
+                    contentDescription = if (isChatOpen) "Hide Chat" else "Show Chat",
                     tint = Color.White,
                 )
             }

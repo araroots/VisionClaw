@@ -41,10 +41,25 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
         private const val TAG = "GeminiSessionVM"
         private const val STRICT_FOLLOWUP_WINDOW_MS = 2000L
         private const val CONTINUOUS_FOLLOWUP_WINDOW_MS = 4000L
+        private const val MAX_HISTORY_TURNS = 10 // matches OpenClawBridge's cap
     }
 
     private val _uiState = MutableStateFlow(GeminiUiState())
     val uiState: StateFlow<GeminiUiState> = _uiState.asStateFlow()
+
+    // Durable log of completed turns (voice + typed), kept outside GeminiUiState so it survives
+    // stopSession()'s full state reset -- this is what lets the conversation continue across the
+    // AI on/off toggle instead of starting cold every time.
+    private val _conversationHistory = MutableStateFlow<List<ConversationTurn>>(emptyList())
+    val conversationHistory: StateFlow<List<ConversationTurn>> = _conversationHistory.asStateFlow()
+
+    private fun appendTurn(turn: ConversationTurn) {
+        _conversationHistory.value = (_conversationHistory.value + turn).takeLast(MAX_HISTORY_TURNS * 2)
+    }
+
+    // Set by sendChatMessage() when it has to cold-start the session first; flushed once the
+    // new connection is Ready.
+    private var pendingChatMessage: String? = null
 
     private var activeService: RealtimeAIService? = null
     private val openClawBridge = OpenClawBridge()
@@ -147,6 +162,13 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
         }
 
         service.onTurnComplete = {
+            val turnState = _uiState.value
+            if (turnState.userTranscript.isNotEmpty()) {
+                appendTurn(ConversationTurn(ConversationTurn.Role.USER, turnState.userTranscript))
+            }
+            if (turnState.aiTranscript.isNotEmpty()) {
+                appendTurn(ConversationTurn(ConversationTurn.Role.ASSISTANT, turnState.aiTranscript))
+            }
             _uiState.value = _uiState.value.copy(userTranscript = "")
             // Don't start the silence countdown while a tool call is still running in the
             // background (e.g. an OpenClaw task) -- the model's final spoken confirmation is
@@ -260,6 +282,21 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
                     refreshWakeWordListening()
                 }
 
+                // Seed the fresh connection with prior turns so the model has continuity across
+                // the reconnect instead of starting cold (neither backend supports true session
+                // resumption, so this is a client-side replay of context).
+                if (_conversationHistory.value.isNotEmpty()) {
+                    service.seedHistory(_conversationHistory.value)
+                }
+
+                // Flush a chat message typed while the AI was off -- it triggered this
+                // startSession() call, so send it now that the connection is Ready.
+                pendingChatMessage?.let { msg ->
+                    appendTurn(ConversationTurn(ConversationTurn.Role.USER, msg))
+                    service.sendTextMessage(msg)
+                    pendingChatMessage = null
+                }
+
                 // Connect to OpenClaw event stream for proactive notifications
                 if (SettingsManager.proactiveNotificationsEnabled) {
                     eventClient.onNotification = { text ->
@@ -274,9 +311,24 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
+    // Sends a typed message, sharing the same history as voice turns. If the AI is currently
+    // off, starts a session first (which will replay history) and flushes this message once
+    // the new connection is Ready.
+    fun sendChatMessage(text: String) {
+        if (text.isBlank()) return
+        if (_uiState.value.isGeminiActive) {
+            appendTurn(ConversationTurn(ConversationTurn.Role.USER, text))
+            activeService?.sendTextMessage(text)
+        } else {
+            pendingChatMessage = text
+            startSession()
+        }
+    }
+
     fun stopSession() {
         followUpTimeoutJob?.cancel()
         followUpTimeoutJob = null
+        pendingChatMessage = null
         eventClient.disconnect()
         toolCallRouter?.cancelAll()
         toolCallRouter = null

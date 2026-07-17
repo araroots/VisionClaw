@@ -214,6 +214,31 @@ class GeminiLiveService : RealtimeAIService {
         }
     }
 
+    override fun seedHistory(turns: List<ConversationTurn>) {
+        if (turns.isEmpty()) return
+        if (_connectionState.value != GeminiConnectionState.Ready) return
+        sendExecutor.execute {
+            val turnsArray = JSONArray()
+            for (turn in turns) {
+                turnsArray.put(JSONObject().apply {
+                    put("role", if (turn.role == ConversationTurn.Role.USER) "user" else "model")
+                    put("parts", JSONArray().put(JSONObject().apply {
+                        put("text", turn.text)
+                    }))
+                })
+            }
+            // Batched into a single clientContent message with no trailing empty/final turn --
+            // this is context priming, not a new prompt, so it must not trigger a response.
+            val json = JSONObject().apply {
+                put("clientContent", JSONObject().apply {
+                    put("turns", turnsArray)
+                    put("turnComplete", false)
+                })
+            }
+            webSocket?.send(json.toString())
+        }
+    }
+
     // Private
 
     private fun resolveConnect(success: Boolean) {

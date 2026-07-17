@@ -30,4 +30,9 @@ interface RealtimeAIService {
     fun sendVideoFrame(bitmap: Bitmap)
     fun sendToolResult(callId: String, name: String, result: ToolResult)
     fun sendTextMessage(text: String)
+
+    // Replays prior conversation turns into a freshly-connected session as context, without
+    // triggering a new model response -- used to fake continuity across a reconnect since
+    // neither backend supports true session resumption.
+    fun seedHistory(turns: List<ConversationTurn>)
 }

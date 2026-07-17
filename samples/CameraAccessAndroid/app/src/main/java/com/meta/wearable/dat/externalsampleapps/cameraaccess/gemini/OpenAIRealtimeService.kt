@@ -217,6 +217,33 @@ class OpenAIRealtimeService : RealtimeAIService {
         }
     }
 
+    override fun seedHistory(turns: List<ConversationTurn>) {
+        if (turns.isEmpty()) return
+        if (_connectionState.value != GeminiConnectionState.Ready) return
+        sendExecutor.execute {
+            // One conversation.item.create per turn, deliberately with no trailing
+            // response.create -- these are prior turns being replayed as context after a
+            // reconnect, not a new prompt, so they must not trigger a fresh model response.
+            for (turn in turns) {
+                val role = if (turn.role == ConversationTurn.Role.USER) "user" else "assistant"
+                val contentType = if (turn.role == ConversationTurn.Role.USER) "input_text" else "text"
+                val createItem = JSONObject().apply {
+                    put("type", "conversation.item.create")
+                    put("item", JSONObject().apply {
+                        put("type", "message")
+                        put("role", role)
+                        put("status", "completed")
+                        put("content", JSONArray().put(JSONObject().apply {
+                            put("type", contentType)
+                            put("text", turn.text)
+                        }))
+                    })
+                }
+                webSocket?.send(createItem.toString())
+            }
+        }
+    }
+
     // Private
 
     private fun resolveConnect(success: Boolean) {

@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,7 +26,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
@@ -83,8 +87,10 @@ fun StreamScreen(
     val streamUiState by streamViewModel.uiState.collectAsStateWithLifecycle()
     val geminiUiState by geminiViewModel.uiState.collectAsStateWithLifecycle()
     val webrtcUiState by webrtcViewModel.uiState.collectAsStateWithLifecycle()
+    val conversationHistory by geminiViewModel.conversationHistory.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
+    var isChatPanelOpen by remember { mutableStateOf(false) }
 
     // Wire Gemini VM to Stream VM for frame forwarding
     LaunchedEffect(geminiViewModel) {
@@ -186,6 +192,20 @@ fun StreamScreen(
                 }
             }
 
+            // Chat panel (voice + typed history) -- visibility is independent of isGeminiActive
+            // so the log stays reviewable/usable even while the AI toggle is off
+            if (isChatPanelOpen) {
+                ChatPanel(
+                    history = conversationHistory,
+                    onSend = { geminiViewModel.sendChatMessage(it) },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 140.dp)
+                        .fillMaxWidth()
+                        .heightIn(max = 320.dp),
+                )
+            }
+
             // Controls at bottom
             ControlsRow(
                 onStopStream = {
@@ -224,6 +244,8 @@ fun StreamScreen(
                     }
                 },
                 isLiveActive = webrtcUiState.isActive,
+                onToggleChat = { isChatPanelOpen = !isChatPanelOpen },
+                isChatOpen = isChatPanelOpen,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }

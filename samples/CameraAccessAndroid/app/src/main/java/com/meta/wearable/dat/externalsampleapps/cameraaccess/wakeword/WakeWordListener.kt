@@ -7,7 +7,6 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
-import java.text.Normalizer
 
 // Continuously listens for a spoken wake phrase using Android's built-in SpeechRecognizer.
 // Each recognition session is short-lived (ends after a pause or timeout), so this restarts
@@ -34,7 +33,7 @@ class WakeWordListener(private val context: Context) {
             return
         }
         triggers = phrases
-            .map { (phrase, callback) -> Trigger(normalize(phrase), callback) }
+            .map { (phrase, callback) -> Trigger(normalizePhrase(phrase), callback) }
             .filter { it.normalizedPhrase.isNotEmpty() }
         if (triggers.isEmpty()) return
         isListening = true
@@ -96,7 +95,7 @@ class WakeWordListener(private val context: Context) {
         if (triggered) return
         val matches = bundle?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) ?: return
         for (candidate in matches) {
-            val normalizedCandidate = normalize(candidate)
+            val normalizedCandidate = normalizePhrase(candidate)
             for (trigger in triggers) {
                 if (normalizedCandidate.contains(trigger.normalizedPhrase)) {
                     Log.d(TAG, "Wake phrase detected: $candidate")
@@ -119,9 +118,4 @@ class WakeWordListener(private val context: Context) {
         }
     }
 
-    private fun normalize(text: String): String {
-        val stripped = Normalizer.normalize(text, Normalizer.Form.NFD)
-            .replace(Regex("\\p{Mn}+"), "")
-        return stripped.lowercase().trim()
-    }
 }

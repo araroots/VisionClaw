@@ -14,6 +14,7 @@ package com.meta.wearable.dat.externalsampleapps.cameraaccess.stream
 
 import android.graphics.Bitmap
 import com.meta.wearable.dat.camera.types.StreamSessionState
+import java.io.File
 
 enum class StreamingMode { GLASSES, PHONE }
 
@@ -24,4 +25,7 @@ data class StreamUiState(
     val isShareDialogVisible: Boolean = false,
     val isCapturing: Boolean = false,
     val streamingMode: StreamingMode = StreamingMode.GLASSES,
+    val isRecording: Boolean = false,
+    val recordedVideoFile: File? = null,
+    val isShareVideoDialogVisible: Boolean = false,
 )

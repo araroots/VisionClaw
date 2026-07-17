@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Videocam
@@ -44,6 +45,8 @@ fun ControlsRow(
     isLiveActive: Boolean,
     onToggleChat: () -> Unit,
     isChatOpen: Boolean,
+    onToggleRecord: () -> Unit,
+    isRecording: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -120,6 +123,23 @@ fun ControlsRow(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Chat,
                     contentDescription = if (isChatOpen) "Hide Chat" else "Show Chat",
+                    tint = Color.White,
+                )
+            }
+
+            // Record toggle button
+            Button(
+                onClick = onToggleRecord,
+                modifier = Modifier.aspectRatio(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isRecording) AppColor.Red else AppColor.DeepBlue,
+                ),
+                shape = CircleShape,
+                contentPadding = PaddingValues(0.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FiberManualRecord,
+                    contentDescription = if (isRecording) "Stop Recording" else "Start Recording",
                     tint = Color.White,
                 )
             }

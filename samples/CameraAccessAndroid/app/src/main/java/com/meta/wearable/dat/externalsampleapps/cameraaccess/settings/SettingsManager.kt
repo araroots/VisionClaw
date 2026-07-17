@@ -83,6 +83,42 @@ object SettingsManager {
         get() = prefs.getString("openClawWakePhrase", null) ?: DEFAULT_OPENCLAW_WAKE_PHRASE
         set(value) = prefs.edit().putString("openClawWakePhrase", value).apply()
 
+    // Ends the AI session by voice, checked against the live conversation's own transcription
+    // (the idle wake-word listener is off while a session is active, so this can't reuse it).
+    var aiStopPhraseEnabled: Boolean
+        get() = prefs.getBoolean("aiStopPhraseEnabled", false)
+        set(value) = prefs.edit().putBoolean("aiStopPhraseEnabled", value).apply()
+
+    var aiStopPhrase: String
+        get() = prefs.getString("aiStopPhrase", null) ?: DEFAULT_AI_STOP_PHRASE
+        set(value) = prefs.edit().putString("aiStopPhrase", value).apply()
+
+    // Camera and recording voice control both reuse the idle wake-word listener (it runs
+    // whenever the AI is off, independent of camera/recording state).
+    var cameraWakeWordEnabled: Boolean
+        get() = prefs.getBoolean("cameraWakeWordEnabled", false)
+        set(value) = prefs.edit().putBoolean("cameraWakeWordEnabled", value).apply()
+
+    var cameraStartPhrase: String
+        get() = prefs.getString("cameraStartPhrase", null) ?: DEFAULT_CAMERA_START_PHRASE
+        set(value) = prefs.edit().putString("cameraStartPhrase", value).apply()
+
+    var cameraStopPhrase: String
+        get() = prefs.getString("cameraStopPhrase", null) ?: DEFAULT_CAMERA_STOP_PHRASE
+        set(value) = prefs.edit().putString("cameraStopPhrase", value).apply()
+
+    var recordingWakeWordEnabled: Boolean
+        get() = prefs.getBoolean("recordingWakeWordEnabled", false)
+        set(value) = prefs.edit().putBoolean("recordingWakeWordEnabled", value).apply()
+
+    var recordingStartPhrase: String
+        get() = prefs.getString("recordingStartPhrase", null) ?: DEFAULT_RECORDING_START_PHRASE
+        set(value) = prefs.edit().putString("recordingStartPhrase", value).apply()
+
+    var recordingStopPhrase: String
+        get() = prefs.getString("recordingStopPhrase", null) ?: DEFAULT_RECORDING_STOP_PHRASE
+        set(value) = prefs.edit().putString("recordingStopPhrase", value).apply()
+
     var continuousConversationEnabled: Boolean
         get() = prefs.getBoolean("continuousConversationEnabled", true)
         set(value) = prefs.edit().putBoolean("continuousConversationEnabled", value).apply()
@@ -127,6 +163,11 @@ object SettingsManager {
 
     const val DEFAULT_WAKE_PHRASE = "Araguaia é Mestre"
     const val DEFAULT_OPENCLAW_WAKE_PHRASE = "Ativar OpenClaw"
+    const val DEFAULT_AI_STOP_PHRASE = "Encerrar conversa"
+    const val DEFAULT_CAMERA_START_PHRASE = "Ligar câmera"
+    const val DEFAULT_CAMERA_STOP_PHRASE = "Desligar câmera"
+    const val DEFAULT_RECORDING_START_PHRASE = "Gravar vídeo"
+    const val DEFAULT_RECORDING_STOP_PHRASE = "Parar gravação"
     const val DEFAULT_FRAME_RATE = 24
 
     const val DEFAULT_SYSTEM_PROMPT = """You are an AI assistant for someone wearing Meta Ray-Ban smart glasses. You can see through their camera and have a voice conversation. Keep responses concise and natural.

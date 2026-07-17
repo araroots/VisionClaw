@@ -13,8 +13,10 @@ import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.OpenClawCo
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.ToolCallRouter
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.ToolCallStatus
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.ToolResult
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.StreamViewModel
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.StreamingMode
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.wakeword.WakeWordListener
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.wakeword.normalizePhrase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -79,6 +81,11 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
 
     var streamingMode: StreamingMode = StreamingMode.GLASSES
 
+    // Bridge to let the idle wake-word listener (which lives here) trigger camera/recording
+    // actions (which live on StreamViewModel) -- mirrors StreamViewModel's own
+    // `geminiViewModel` field, wired the same way from StreamScreen.
+    var streamViewModel: StreamViewModel? = null
+
     // Wake word only listens while the containing screen is on-screen and the AI isn't
     // already active -- call from the composable's mount/dispose so it never runs unattended.
     fun onScreenActive() {
@@ -104,6 +111,26 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
                 triggers.add(SettingsManager.openClawWakePhrase to {
                     Log.d(TAG, "OpenClaw wake phrase detected, activating OpenClaw")
                     activateOpenClawByVoice()
+                })
+            }
+            if (SettingsManager.cameraWakeWordEnabled) {
+                triggers.add(SettingsManager.cameraStartPhrase to {
+                    Log.d(TAG, "Camera start phrase detected")
+                    streamViewModel?.startStream()
+                })
+                triggers.add(SettingsManager.cameraStopPhrase to {
+                    Log.d(TAG, "Camera stop phrase detected")
+                    streamViewModel?.stopStream()
+                })
+            }
+            if (SettingsManager.recordingWakeWordEnabled) {
+                triggers.add(SettingsManager.recordingStartPhrase to {
+                    Log.d(TAG, "Recording start phrase detected")
+                    streamViewModel?.startRecording()
+                })
+                triggers.add(SettingsManager.recordingStopPhrase to {
+                    Log.d(TAG, "Recording stop phrase detected")
+                    streamViewModel?.stopRecording()
                 })
             }
             if (triggers.isNotEmpty()) {
@@ -182,10 +209,19 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
                 appendTurn(ConversationTurn(ConversationTurn.Role.ASSISTANT, turnState.aiTranscript))
             }
             _uiState.value = _uiState.value.copy(userTranscript = "")
-            // Don't start the silence countdown while a tool call is still running in the
-            // background (e.g. an OpenClaw task) -- the model's final spoken confirmation is
-            // still coming and can take much longer than the follow-up window.
-            if (SettingsManager.wakeWordEnabled && !_uiState.value.toolCallStatus.isActive) {
+
+            // Voice-triggered end of session -- checked against the live conversation's own
+            // transcription, since the idle wake-word listener is off while a session is active
+            // and can't be reused here the way the start phrase is.
+            val stopPhraseDetected = SettingsManager.aiStopPhraseEnabled &&
+                normalizePhrase(turnState.userTranscript).contains(normalizePhrase(SettingsManager.aiStopPhrase))
+            if (stopPhraseDetected) {
+                Log.d(TAG, "Stop phrase detected, ending session")
+                stopSession()
+            } else if (SettingsManager.wakeWordEnabled && !_uiState.value.toolCallStatus.isActive) {
+                // Don't start the silence countdown while a tool call is still running in the
+                // background (e.g. an OpenClaw task) -- the model's final spoken confirmation is
+                // still coming and can take much longer than the follow-up window.
                 scheduleFollowUpTimeout()
             }
         }

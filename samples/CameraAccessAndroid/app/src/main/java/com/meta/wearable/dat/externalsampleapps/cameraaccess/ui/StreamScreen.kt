@@ -97,6 +97,11 @@ fun StreamScreen(
         streamViewModel.geminiViewModel = geminiViewModel
     }
 
+    // Wire Stream VM to Gemini VM so the idle wake-word listener can trigger camera/recording
+    LaunchedEffect(streamViewModel) {
+        geminiViewModel.streamViewModel = streamViewModel
+    }
+
     // Wire WebRTC VM to Stream VM for frame forwarding
     LaunchedEffect(webrtcViewModel) {
         streamViewModel.webrtcViewModel = webrtcViewModel
@@ -249,6 +254,14 @@ fun StreamScreen(
                 isLiveActive = webrtcUiState.isActive,
                 onToggleChat = { isChatPanelOpen = !isChatPanelOpen },
                 isChatOpen = isChatPanelOpen,
+                onToggleRecord = {
+                    if (streamUiState.isRecording) {
+                        streamViewModel.stopRecording()
+                    } else {
+                        streamViewModel.startRecording()
+                    }
+                },
+                isRecording = streamUiState.isRecording,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
@@ -263,6 +276,20 @@ fun StreamScreen(
                 onShare = { bitmap ->
                     streamViewModel.sharePhoto(bitmap)
                     streamViewModel.hideShareDialog()
+                },
+            )
+        }
+    }
+
+    // Share video dialog
+    streamUiState.recordedVideoFile?.let { file ->
+        if (streamUiState.isShareVideoDialogVisible) {
+            ShareVideoDialog(
+                file = file,
+                onDismiss = { streamViewModel.hideShareVideoDialog() },
+                onShare = {
+                    streamViewModel.shareVideo(file)
+                    streamViewModel.hideShareVideoDialog()
                 },
             )
         }

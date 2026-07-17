@@ -62,6 +62,14 @@ fun SettingsScreen(
     var wakePhrase by remember { mutableStateOf(SettingsManager.wakePhrase) }
     var openClawWakeWordEnabled by remember { mutableStateOf(SettingsManager.openClawWakeWordEnabled) }
     var openClawWakePhrase by remember { mutableStateOf(SettingsManager.openClawWakePhrase) }
+    var aiStopPhraseEnabled by remember { mutableStateOf(SettingsManager.aiStopPhraseEnabled) }
+    var aiStopPhrase by remember { mutableStateOf(SettingsManager.aiStopPhrase) }
+    var cameraWakeWordEnabled by remember { mutableStateOf(SettingsManager.cameraWakeWordEnabled) }
+    var cameraStartPhrase by remember { mutableStateOf(SettingsManager.cameraStartPhrase) }
+    var cameraStopPhrase by remember { mutableStateOf(SettingsManager.cameraStopPhrase) }
+    var recordingWakeWordEnabled by remember { mutableStateOf(SettingsManager.recordingWakeWordEnabled) }
+    var recordingStartPhrase by remember { mutableStateOf(SettingsManager.recordingStartPhrase) }
+    var recordingStopPhrase by remember { mutableStateOf(SettingsManager.recordingStopPhrase) }
     var continuousConversationEnabled by remember { mutableStateOf(SettingsManager.continuousConversationEnabled) }
     var aiSpeechSpeed by remember { mutableStateOf(SettingsManager.aiSpeechSpeed) }
     var videoQuality by remember { mutableStateOf(SettingsManager.videoQuality) }
@@ -87,6 +95,14 @@ fun SettingsScreen(
         SettingsManager.wakePhrase = wakePhrase.trim().ifEmpty { SettingsManager.DEFAULT_WAKE_PHRASE }
         SettingsManager.openClawWakeWordEnabled = openClawWakeWordEnabled
         SettingsManager.openClawWakePhrase = openClawWakePhrase.trim().ifEmpty { SettingsManager.DEFAULT_OPENCLAW_WAKE_PHRASE }
+        SettingsManager.aiStopPhraseEnabled = aiStopPhraseEnabled
+        SettingsManager.aiStopPhrase = aiStopPhrase.trim().ifEmpty { SettingsManager.DEFAULT_AI_STOP_PHRASE }
+        SettingsManager.cameraWakeWordEnabled = cameraWakeWordEnabled
+        SettingsManager.cameraStartPhrase = cameraStartPhrase.trim().ifEmpty { SettingsManager.DEFAULT_CAMERA_START_PHRASE }
+        SettingsManager.cameraStopPhrase = cameraStopPhrase.trim().ifEmpty { SettingsManager.DEFAULT_CAMERA_STOP_PHRASE }
+        SettingsManager.recordingWakeWordEnabled = recordingWakeWordEnabled
+        SettingsManager.recordingStartPhrase = recordingStartPhrase.trim().ifEmpty { SettingsManager.DEFAULT_RECORDING_START_PHRASE }
+        SettingsManager.recordingStopPhrase = recordingStopPhrase.trim().ifEmpty { SettingsManager.DEFAULT_RECORDING_STOP_PHRASE }
         SettingsManager.continuousConversationEnabled = continuousConversationEnabled
         SettingsManager.aiSpeechSpeed = aiSpeechSpeed
         SettingsManager.videoQuality = videoQuality
@@ -112,6 +128,14 @@ fun SettingsScreen(
         wakePhrase = SettingsManager.wakePhrase
         openClawWakeWordEnabled = SettingsManager.openClawWakeWordEnabled
         openClawWakePhrase = SettingsManager.openClawWakePhrase
+        aiStopPhraseEnabled = SettingsManager.aiStopPhraseEnabled
+        aiStopPhrase = SettingsManager.aiStopPhrase
+        cameraWakeWordEnabled = SettingsManager.cameraWakeWordEnabled
+        cameraStartPhrase = SettingsManager.cameraStartPhrase
+        cameraStopPhrase = SettingsManager.cameraStopPhrase
+        recordingWakeWordEnabled = SettingsManager.recordingWakeWordEnabled
+        recordingStartPhrase = SettingsManager.recordingStartPhrase
+        recordingStopPhrase = SettingsManager.recordingStopPhrase
         continuousConversationEnabled = SettingsManager.continuousConversationEnabled
         aiSpeechSpeed = SettingsManager.aiSpeechSpeed
         videoQuality = SettingsManager.videoQuality
@@ -342,6 +366,99 @@ fun SettingsScreen(
                     onValueChange = { openClawWakePhrase = it },
                     label = "OpenClaw Wake Phrase",
                     placeholder = SettingsManager.DEFAULT_OPENCLAW_WAKE_PHRASE,
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("AI Stop Phrase", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Say the phrase below during a conversation to end it hands-free -- useful with Continuous Conversation, which never closes on its own.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = aiStopPhraseEnabled,
+                    onCheckedChange = { aiStopPhraseEnabled = it },
+                )
+            }
+            if (aiStopPhraseEnabled) {
+                MonoTextField(
+                    value = aiStopPhrase,
+                    onValueChange = { aiStopPhrase = it },
+                    label = "Stop Phrase",
+                    placeholder = SettingsManager.DEFAULT_AI_STOP_PHRASE,
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("Camera Wake Word", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Say these phrases to start/stop the camera hands-free (only while the AI is off).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = cameraWakeWordEnabled,
+                    onCheckedChange = { cameraWakeWordEnabled = it },
+                )
+            }
+            if (cameraWakeWordEnabled) {
+                MonoTextField(
+                    value = cameraStartPhrase,
+                    onValueChange = { cameraStartPhrase = it },
+                    label = "Camera Start Phrase",
+                    placeholder = SettingsManager.DEFAULT_CAMERA_START_PHRASE,
+                )
+                MonoTextField(
+                    value = cameraStopPhrase,
+                    onValueChange = { cameraStopPhrase = it },
+                    label = "Camera Stop Phrase",
+                    placeholder = SettingsManager.DEFAULT_CAMERA_STOP_PHRASE,
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("Recording Wake Word", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Say these phrases to start/stop saving the camera stream to a video file (only while the AI is off).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = recordingWakeWordEnabled,
+                    onCheckedChange = { recordingWakeWordEnabled = it },
+                )
+            }
+            if (recordingWakeWordEnabled) {
+                MonoTextField(
+                    value = recordingStartPhrase,
+                    onValueChange = { recordingStartPhrase = it },
+                    label = "Recording Start Phrase",
+                    placeholder = SettingsManager.DEFAULT_RECORDING_START_PHRASE,
+                )
+                MonoTextField(
+                    value = recordingStopPhrase,
+                    onValueChange = { recordingStopPhrase = it },
+                    label = "Recording Stop Phrase",
+                    placeholder = SettingsManager.DEFAULT_RECORDING_STOP_PHRASE,
                 )
             }
 

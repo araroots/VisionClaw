@@ -72,6 +72,8 @@ class StreamViewModel(
   var geminiViewModel: GeminiSessionViewModel? = null
   var webrtcViewModel: WebRTCSessionViewModel? = null
   private var phoneCameraManager: PhoneCameraManager? = null
+  private var videoRecorder: VideoRecorder? = null
+  private var pendingRecordingFile: File? = null
 
   fun startStream() {
     videoJob?.cancel()
@@ -117,6 +119,8 @@ class StreamViewModel(
       geminiViewModel?.sendVideoFrameIfThrottled(bitmap)
       // Forward to WebRTC (every frame)
       webrtcViewModel?.pushVideoFrame(bitmap)
+      // Forward to the recorder, if one is running
+      maybeRecordFrame(bitmap)
     }
 
     _uiState.update {
@@ -141,6 +145,13 @@ class StreamViewModel(
     streamSession = null
     phoneCameraManager?.stop()
     phoneCameraManager = null
+    // Discard rather than save -- the stream ending abruptly isn't a deliberate "finish and
+    // share this recording" action.
+    if (uiState.value.isRecording) {
+      videoRecorder?.stop {}
+      videoRecorder = null
+      pendingRecordingFile = null
+    }
     _uiState.update { INITIAL_STATE }
   }
 
@@ -189,6 +200,66 @@ class StreamViewModel(
 
   fun hideShareDialog() {
     _uiState.update { it.copy(isShareDialogVisible = false) }
+  }
+
+  fun startRecording() {
+    if (uiState.value.isRecording) {
+      Log.d(TAG, "Recording already in progress, ignoring request")
+      return
+    }
+    if (uiState.value.streamSessionState != StreamSessionState.STREAMING) {
+      Log.w(TAG, "Cannot start recording: stream not active (state=${uiState.value.streamSessionState})")
+      return
+    }
+    val context = getApplication<Application>()
+    val videosFolder = File(context.cacheDir, "videos")
+    videosFolder.mkdirs()
+    val file = File(videosFolder, "recording_${System.currentTimeMillis()}.mp4")
+    // The encoder can't be configured until we know the actual frame dimensions, so just
+    // remember the target file -- maybeRecordFrame() lazily starts the VideoRecorder on the
+    // next frame that arrives.
+    pendingRecordingFile = file
+    _uiState.update { it.copy(isRecording = true) }
+    Log.d(TAG, "Recording requested, will start on next frame")
+  }
+
+  fun stopRecording() {
+    if (!uiState.value.isRecording) return
+    val recorder = videoRecorder
+    videoRecorder = null
+    pendingRecordingFile = null
+    _uiState.update { it.copy(isRecording = false) }
+    if (recorder == null) {
+      // Toggled off before a single frame arrived to start the encoder -- nothing to save.
+      return
+    }
+    recorder.stop { file ->
+      if (file != null) {
+        _uiState.update { it.copy(recordedVideoFile = file, isShareVideoDialogVisible = true) }
+      }
+    }
+  }
+
+  fun hideShareVideoDialog() {
+    _uiState.update { it.copy(isShareVideoDialogVisible = false) }
+  }
+
+  fun shareVideo(file: File) {
+    val context = getApplication<Application>()
+    try {
+      val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+      val intent = Intent(Intent.ACTION_SEND)
+      intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+      intent.putExtra(Intent.EXTRA_STREAM, uri)
+      intent.type = "video/mp4"
+      intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+      val chooser = Intent.createChooser(intent, "Share Video")
+      chooser.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+      context.startActivity(chooser)
+    } catch (e: Exception) {
+      Log.e(TAG, "Failed to share video", e)
+    }
   }
 
   fun sharePhoto(bitmap: Bitmap) {
@@ -244,6 +315,21 @@ class StreamViewModel(
     geminiViewModel?.sendVideoFrameIfThrottled(bitmap)
     // Forward to WebRTC (every frame)
     webrtcViewModel?.pushVideoFrame(bitmap)
+    // Forward to the recorder, if one is running
+    maybeRecordFrame(bitmap)
+  }
+
+  private fun maybeRecordFrame(bitmap: Bitmap) {
+    if (!uiState.value.isRecording) return
+    val recorder = videoRecorder ?: run {
+      // First frame after startRecording() was requested -- now we know the real dimensions.
+      val recorder = VideoRecorder()
+      videoRecorder = recorder
+      val file = pendingRecordingFile ?: return
+      recorder.start(file, bitmap.width, bitmap.height, SettingsManager.videoFrameRate)
+      recorder
+    }
+    recorder.recordFrame(bitmap)
   }
 
   // Convert I420 (YYYYYYYY:UUVV) to NV21 (YYYYYYYY:VUVU)

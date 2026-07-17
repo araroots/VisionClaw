@@ -40,7 +40,6 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
     companion object {
         private const val TAG = "GeminiSessionVM"
         private const val STRICT_FOLLOWUP_WINDOW_MS = 2000L
-        private const val CONTINUOUS_FOLLOWUP_WINDOW_MS = 4000L
         private const val MAX_HISTORY_TURNS = 10 // matches OpenClawBridge's cap
     }
 
@@ -109,16 +108,14 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
 
     // After each AI response, give the user a short window to keep talking without repeating
     // the wake phrase; if nothing comes in, close the session and go back to wake-word listening.
+    // In continuous conversation mode this auto-close is skipped entirely -- the session stays
+    // open until the user manually turns the AI off, no matter how long the silence lasts.
     private fun scheduleFollowUpTimeout() {
         followUpTimeoutJob?.cancel()
-        val windowMs = if (SettingsManager.continuousConversationEnabled) {
-            CONTINUOUS_FOLLOWUP_WINDOW_MS
-        } else {
-            STRICT_FOLLOWUP_WINDOW_MS
-        }
+        if (SettingsManager.continuousConversationEnabled) return
         followUpTimeoutJob = viewModelScope.launch {
-            delay(windowMs)
-            Log.d(TAG, "No follow-up within ${windowMs}ms, closing session")
+            delay(STRICT_FOLLOWUP_WINDOW_MS)
+            Log.d(TAG, "No follow-up within ${STRICT_FOLLOWUP_WINDOW_MS}ms, closing session")
             stopSession()
         }
     }

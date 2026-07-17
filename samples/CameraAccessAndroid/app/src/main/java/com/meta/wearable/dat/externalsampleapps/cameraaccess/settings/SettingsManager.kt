@@ -87,6 +87,13 @@ object SettingsManager {
         get() = prefs.getBoolean("continuousConversationEnabled", true)
         set(value) = prefs.edit().putBoolean("continuousConversationEnabled", value).apply()
 
+    // Playback speed for the AI's spoken responses (both Gemini Live and OpenAI Realtime share
+    // the same AudioManager output path, so this applies to either provider). Pitch is kept
+    // constant regardless of speed -- see AudioManager's use of PlaybackParams.
+    var aiSpeechSpeed: Float
+        get() = prefs.getFloat("aiSpeechSpeed", 1f)
+        set(value) = prefs.edit().putFloat("aiSpeechSpeed", value).apply()
+
     var videoQuality: VideoQuality
         get() = try {
             VideoQuality.valueOf(prefs.getString("videoQuality", null) ?: VideoQuality.MEDIUM.name)

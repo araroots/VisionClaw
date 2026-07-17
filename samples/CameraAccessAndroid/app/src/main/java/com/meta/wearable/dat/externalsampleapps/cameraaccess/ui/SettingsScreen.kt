@@ -63,6 +63,7 @@ fun SettingsScreen(
     var openClawWakeWordEnabled by remember { mutableStateOf(SettingsManager.openClawWakeWordEnabled) }
     var openClawWakePhrase by remember { mutableStateOf(SettingsManager.openClawWakePhrase) }
     var continuousConversationEnabled by remember { mutableStateOf(SettingsManager.continuousConversationEnabled) }
+    var aiSpeechSpeed by remember { mutableStateOf(SettingsManager.aiSpeechSpeed) }
     var videoQuality by remember { mutableStateOf(SettingsManager.videoQuality) }
     var videoFrameRate by remember { mutableStateOf(SettingsManager.videoFrameRate.toString()) }
     var imageBrightness by remember { mutableStateOf(SettingsManager.imageBrightness) }
@@ -87,6 +88,7 @@ fun SettingsScreen(
         SettingsManager.openClawWakeWordEnabled = openClawWakeWordEnabled
         SettingsManager.openClawWakePhrase = openClawWakePhrase.trim().ifEmpty { SettingsManager.DEFAULT_OPENCLAW_WAKE_PHRASE }
         SettingsManager.continuousConversationEnabled = continuousConversationEnabled
+        SettingsManager.aiSpeechSpeed = aiSpeechSpeed
         SettingsManager.videoQuality = videoQuality
         videoFrameRate.trim().toIntOrNull()?.let { SettingsManager.videoFrameRate = it }
         SettingsManager.imageBrightness = imageBrightness
@@ -111,6 +113,7 @@ fun SettingsScreen(
         openClawWakeWordEnabled = SettingsManager.openClawWakeWordEnabled
         openClawWakePhrase = SettingsManager.openClawWakePhrase
         continuousConversationEnabled = SettingsManager.continuousConversationEnabled
+        aiSpeechSpeed = SettingsManager.aiSpeechSpeed
         videoQuality = SettingsManager.videoQuality
         videoFrameRate = SettingsManager.videoFrameRate.toString()
         imageBrightness = SettingsManager.imageBrightness
@@ -341,6 +344,15 @@ fun SettingsScreen(
                     placeholder = SettingsManager.DEFAULT_OPENCLAW_WAKE_PHRASE,
                 )
             }
+
+            // AI Speech
+            SectionHeader("AI Speech")
+            LabeledSlider(
+                label = "Speech Speed",
+                value = aiSpeechSpeed,
+                onValueChange = { aiSpeechSpeed = it },
+                valueRange = 0.75f..2f,
+            )
 
             // Video Quality
             SectionHeader("Video Quality")

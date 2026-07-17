@@ -6,7 +6,9 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
+import android.media.PlaybackParams
 import android.util.Log
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
 import java.io.ByteArrayOutputStream
 
 class AudioManager {
@@ -66,6 +68,17 @@ class AudioManager {
                 ) * 2
             )
             .build()
+
+        // Speed up spoken responses while keeping pitch natural (pitch=1f decouples it from
+        // speed -- otherwise a faster speed also raises pitch, a la a sped-up tape).
+        val speed = SettingsManager.aiSpeechSpeed
+        if (speed != 1f) {
+            try {
+                audioTrack?.playbackParams = PlaybackParams().setSpeed(speed).setPitch(1f)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to apply playback speed $speed: ${e.message}")
+            }
+        }
 
         audioRecord?.startRecording()
         audioTrack?.play()

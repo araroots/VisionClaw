@@ -179,11 +179,8 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
             }
         }
 
-        // Check OpenClaw and start session
+        // Start session (OpenClaw connectivity is only checked once it's toggled on)
         viewModelScope.launch {
-            openClawBridge.checkConnection()
-            openClawBridge.resetSession()
-
             // Wire tool call handling
             toolCallRouter = ToolCallRouter(openClawBridge, viewModelScope)
 
@@ -283,6 +280,7 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
         eventClient.disconnect()
         toolCallRouter?.cancelAll()
         toolCallRouter = null
+        openClawBridge.markInactive()
         audioManager.stopCapture()
         activeService?.disconnect()
         activeService = null
@@ -308,7 +306,16 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun toggleOpenClaw() {
-        _uiState.value = _uiState.value.copy(isOpenClawActive = !_uiState.value.isOpenClawActive)
+        val active = !_uiState.value.isOpenClawActive
+        _uiState.value = _uiState.value.copy(isOpenClawActive = active)
+        if (active) {
+            viewModelScope.launch {
+                openClawBridge.checkConnection()
+                openClawBridge.resetSession()
+            }
+        } else {
+            openClawBridge.markInactive()
+        }
     }
 
     fun clearError() {

@@ -31,6 +31,10 @@ class OpenClawBridge {
         _lastToolCallStatus.value = status
     }
 
+    fun markInactive() {
+        _connectionState.value = OpenClawConnectionState.NotConfigured
+    }
+
     private val client = OkHttpClient.Builder()
         .readTimeout(120, TimeUnit.SECONDS)
         .connectTimeout(10, TimeUnit.SECONDS)

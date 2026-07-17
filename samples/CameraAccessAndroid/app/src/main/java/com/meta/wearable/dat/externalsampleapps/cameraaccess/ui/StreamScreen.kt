@@ -15,10 +15,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
@@ -193,16 +193,19 @@ fun StreamScreen(
             }
 
             // Chat panel (voice + typed history) -- visibility is independent of isGeminiActive
-            // so the log stays reviewable/usable even while the AI toggle is off
+            // so the log stays reviewable/usable even while the AI toggle is off. Centered in
+            // the upper half of the screen, clear of the status/transcript overlay above and the
+            // controls row below.
             if (isChatPanelOpen) {
                 ChatPanel(
                     history = conversationHistory,
                     onSend = { geminiViewModel.sendChatMessage(it) },
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 140.dp)
-                        .fillMaxWidth()
-                        .heightIn(max = 320.dp),
+                        .align(Alignment.TopCenter)
+                        .statusBarsPadding()
+                        .padding(top = 96.dp)
+                        .fillMaxWidth(0.92f)
+                        .fillMaxHeight(0.5f),
                 )
             }
 

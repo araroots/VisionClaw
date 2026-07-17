@@ -220,6 +220,7 @@ class OpenAIRealtimeService : RealtimeAIService {
     override fun seedHistory(turns: List<ConversationTurn>) {
         if (turns.isEmpty()) return
         if (_connectionState.value != GeminiConnectionState.Ready) return
+        Log.d(TAG, "seedHistory: replaying ${turns.size} turn(s)")
         sendExecutor.execute {
             // One conversation.item.create per turn, deliberately with no trailing
             // response.create -- these are prior turns being replayed as context after a
@@ -239,6 +240,7 @@ class OpenAIRealtimeService : RealtimeAIService {
                         }))
                     })
                 }
+                Log.d(TAG, "seedHistory item: $createItem")
                 webSocket?.send(createItem.toString())
             }
         }

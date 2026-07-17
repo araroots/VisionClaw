@@ -285,6 +285,7 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
                 // Seed the fresh connection with prior turns so the model has continuity across
                 // the reconnect instead of starting cold (neither backend supports true session
                 // resumption, so this is a client-side replay of context).
+                Log.d(TAG, "startSession: history has ${_conversationHistory.value.size} turn(s) to seed")
                 if (_conversationHistory.value.isNotEmpty()) {
                     service.seedHistory(_conversationHistory.value)
                 }

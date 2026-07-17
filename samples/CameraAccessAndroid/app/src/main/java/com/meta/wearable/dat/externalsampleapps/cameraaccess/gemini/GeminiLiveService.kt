@@ -217,6 +217,7 @@ class GeminiLiveService : RealtimeAIService {
     override fun seedHistory(turns: List<ConversationTurn>) {
         if (turns.isEmpty()) return
         if (_connectionState.value != GeminiConnectionState.Ready) return
+        Log.d(TAG, "seedHistory: replaying ${turns.size} turn(s)")
         sendExecutor.execute {
             val turnsArray = JSONArray()
             for (turn in turns) {
@@ -235,6 +236,7 @@ class GeminiLiveService : RealtimeAIService {
                     put("turnComplete", false)
                 })
             }
+            Log.d(TAG, "seedHistory payload: $json")
             webSocket?.send(json.toString())
         }
     }
@@ -394,7 +396,12 @@ class GeminiLiveService : RealtimeAIService {
                         onOutputTranscription?.invoke(transcriptText)
                     }
                 }
+                return
             }
+
+            // Anything else (e.g. a rejected/malformed clientContent batch) would otherwise be
+            // silently dropped -- log it so seedHistory failures are visible in logcat.
+            Log.w(TAG, "Unhandled message: $text")
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing message: ${e.message}")
         }

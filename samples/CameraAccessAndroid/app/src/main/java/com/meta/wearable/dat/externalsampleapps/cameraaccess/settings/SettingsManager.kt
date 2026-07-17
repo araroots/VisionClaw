@@ -64,9 +64,23 @@ object SettingsManager {
         get() = prefs.getBoolean("proactiveNotificationsEnabled", true)
         set(value) = prefs.edit().putBoolean("proactiveNotificationsEnabled", value).apply()
 
+    var wakeWordEnabled: Boolean
+        get() = prefs.getBoolean("wakeWordEnabled", false)
+        set(value) = prefs.edit().putBoolean("wakeWordEnabled", value).apply()
+
+    var wakePhrase: String
+        get() = prefs.getString("wakePhrase", null) ?: DEFAULT_WAKE_PHRASE
+        set(value) = prefs.edit().putString("wakePhrase", value).apply()
+
+    var continuousConversationEnabled: Boolean
+        get() = prefs.getBoolean("continuousConversationEnabled", true)
+        set(value) = prefs.edit().putBoolean("continuousConversationEnabled", value).apply()
+
     fun resetAll() {
         prefs.edit().clear().apply()
     }
+
+    const val DEFAULT_WAKE_PHRASE = "Araguaia é Mestre"
 
     const val DEFAULT_SYSTEM_PROMPT = """You are an AI assistant for someone wearing Meta Ray-Ban smart glasses. You can see through their camera and have a voice conversation. Keep responses concise and natural.
 

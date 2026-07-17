@@ -56,6 +56,9 @@ fun SettingsScreen(
     var webrtcSignalingURL by remember { mutableStateOf(SettingsManager.webrtcSignalingURL) }
     var videoStreamingEnabled by remember { mutableStateOf(SettingsManager.videoStreamingEnabled) }
     var proactiveNotificationsEnabled by remember { mutableStateOf(SettingsManager.proactiveNotificationsEnabled) }
+    var wakeWordEnabled by remember { mutableStateOf(SettingsManager.wakeWordEnabled) }
+    var wakePhrase by remember { mutableStateOf(SettingsManager.wakePhrase) }
+    var continuousConversationEnabled by remember { mutableStateOf(SettingsManager.continuousConversationEnabled) }
     var showResetDialog by remember { mutableStateOf(false) }
 
     fun save() {
@@ -70,6 +73,9 @@ fun SettingsScreen(
         SettingsManager.webrtcSignalingURL = webrtcSignalingURL.trim()
         SettingsManager.videoStreamingEnabled = videoStreamingEnabled
         SettingsManager.proactiveNotificationsEnabled = proactiveNotificationsEnabled
+        SettingsManager.wakeWordEnabled = wakeWordEnabled
+        SettingsManager.wakePhrase = wakePhrase.trim().ifEmpty { SettingsManager.DEFAULT_WAKE_PHRASE }
+        SettingsManager.continuousConversationEnabled = continuousConversationEnabled
     }
 
     fun reload() {
@@ -84,6 +90,9 @@ fun SettingsScreen(
         webrtcSignalingURL = SettingsManager.webrtcSignalingURL
         videoStreamingEnabled = SettingsManager.videoStreamingEnabled
         proactiveNotificationsEnabled = SettingsManager.proactiveNotificationsEnabled
+        wakeWordEnabled = SettingsManager.wakeWordEnabled
+        wakePhrase = SettingsManager.wakePhrase
+        continuousConversationEnabled = SettingsManager.continuousConversationEnabled
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -234,6 +243,53 @@ fun SettingsScreen(
                     checked = proactiveNotificationsEnabled,
                     onCheckedChange = { proactiveNotificationsEnabled = it },
                 )
+            }
+
+            // Wake Word
+            SectionHeader("Wake Word")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("Wake Word", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Say the phrase below to start the AI hands-free (only while this screen is open).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = wakeWordEnabled,
+                    onCheckedChange = { wakeWordEnabled = it },
+                )
+            }
+            if (wakeWordEnabled) {
+                MonoTextField(
+                    value = wakePhrase,
+                    onValueChange = { wakePhrase = it },
+                    label = "Wake Phrase",
+                    placeholder = SettingsManager.DEFAULT_WAKE_PHRASE,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                ) {
+                    Column {
+                        Text("Continuous Conversation", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Keep listening for a few seconds after each reply, without repeating the wake phrase.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = continuousConversationEnabled,
+                        onCheckedChange = { continuousConversationEnabled = it },
+                    )
+                }
             }
 
             // Reset

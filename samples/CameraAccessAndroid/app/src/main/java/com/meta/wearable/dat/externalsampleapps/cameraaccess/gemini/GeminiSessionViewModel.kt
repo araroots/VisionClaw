@@ -1,8 +1,9 @@
 package com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini
 
+import android.app.Application
 import android.graphics.Bitmap
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.OpenClawBridge
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.OpenClawEventClient
@@ -12,6 +13,7 @@ import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.OpenClawCo
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.ToolCallRouter
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.ToolCallStatus
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.StreamingMode
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.wakeword.WakeWordListener
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,9 +34,11 @@ data class GeminiUiState(
     val openClawConnectionState: OpenClawConnectionState = OpenClawConnectionState.NotConfigured,
 )
 
-class GeminiSessionViewModel : ViewModel() {
+class GeminiSessionViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         private const val TAG = "GeminiSessionVM"
+        private const val STRICT_FOLLOWUP_WINDOW_MS = 2000L
+        private const val CONTINUOUS_FOLLOWUP_WINDOW_MS = 4000L
     }
 
     private val _uiState = MutableStateFlow(GeminiUiState())
@@ -48,10 +52,58 @@ class GeminiSessionViewModel : ViewModel() {
     private var lastVideoFrameTime: Long = 0
     private var stateObservationJob: Job? = null
 
+    private val wakeWordListener = WakeWordListener(application)
+    private var followUpTimeoutJob: Job? = null
+    private var isScreenActive = false
+
     var streamingMode: StreamingMode = StreamingMode.GLASSES
+
+    init {
+        wakeWordListener.onWakePhraseDetected = {
+            Log.d(TAG, "Wake phrase detected, starting session")
+            startSession()
+        }
+    }
+
+    // Wake word only listens while the containing screen is on-screen and the AI isn't
+    // already active -- call from the composable's mount/dispose so it never runs unattended.
+    fun onScreenActive() {
+        isScreenActive = true
+        refreshWakeWordListening()
+    }
+
+    fun onScreenInactive() {
+        isScreenActive = false
+        wakeWordListener.stop()
+    }
+
+    private fun refreshWakeWordListening() {
+        if (isScreenActive && SettingsManager.wakeWordEnabled && !_uiState.value.isGeminiActive) {
+            wakeWordListener.start(SettingsManager.wakePhrase)
+        } else {
+            wakeWordListener.stop()
+        }
+    }
+
+    // After each AI response, give the user a short window to keep talking without repeating
+    // the wake phrase; if nothing comes in, close the session and go back to wake-word listening.
+    private fun scheduleFollowUpTimeout() {
+        followUpTimeoutJob?.cancel()
+        val windowMs = if (SettingsManager.continuousConversationEnabled) {
+            CONTINUOUS_FOLLOWUP_WINDOW_MS
+        } else {
+            STRICT_FOLLOWUP_WINDOW_MS
+        }
+        followUpTimeoutJob = viewModelScope.launch {
+            delay(windowMs)
+            Log.d(TAG, "No follow-up within ${windowMs}ms, closing session")
+            stopSession()
+        }
+    }
 
     fun startSession() {
         if (_uiState.value.isGeminiActive) return
+        wakeWordListener.stop()
 
         val provider = SettingsManager.aiProvider
         val configured = when (provider) {
@@ -64,6 +116,7 @@ class GeminiSessionViewModel : ViewModel() {
                 AIProvider.OPENAI -> "OpenAI API key not configured. Open Settings and add your key from https://platform.openai.com/api-keys"
             }
             _uiState.value = _uiState.value.copy(errorMessage = msg)
+            refreshWakeWordListening()
             return
         }
 
@@ -93,9 +146,13 @@ class GeminiSessionViewModel : ViewModel() {
 
         service.onTurnComplete = {
             _uiState.value = _uiState.value.copy(userTranscript = "")
+            if (SettingsManager.wakeWordEnabled) {
+                scheduleFollowUpTimeout()
+            }
         }
 
         service.onInputTranscription = { text ->
+            followUpTimeoutJob?.cancel()
             _uiState.value = _uiState.value.copy(
                 userTranscript = _uiState.value.userTranscript + text,
                 aiTranscript = ""
@@ -160,10 +217,12 @@ class GeminiSessionViewModel : ViewModel() {
                     _uiState.value = _uiState.value.copy(errorMessage = msg)
                     service.disconnect()
                     stateObservationJob?.cancel()
+                    activeService = null
                     _uiState.value = _uiState.value.copy(
                         isGeminiActive = false,
                         connectionState = GeminiConnectionState.Disconnected
                     )
+                    refreshWakeWordListening()
                     return@connect
                 }
 
@@ -176,10 +235,12 @@ class GeminiSessionViewModel : ViewModel() {
                     )
                     service.disconnect()
                     stateObservationJob?.cancel()
+                    activeService = null
                     _uiState.value = _uiState.value.copy(
                         isGeminiActive = false,
                         connectionState = GeminiConnectionState.Disconnected
                     )
+                    refreshWakeWordListening()
                 }
 
                 // Connect to OpenClaw event stream for proactive notifications
@@ -197,6 +258,8 @@ class GeminiSessionViewModel : ViewModel() {
     }
 
     fun stopSession() {
+        followUpTimeoutJob?.cancel()
+        followUpTimeoutJob = null
         eventClient.disconnect()
         toolCallRouter?.cancelAll()
         toolCallRouter = null
@@ -206,6 +269,7 @@ class GeminiSessionViewModel : ViewModel() {
         stateObservationJob?.cancel()
         stateObservationJob = null
         _uiState.value = GeminiUiState()
+        refreshWakeWordListening()
     }
 
     fun sendVideoFrameIfThrottled(bitmap: Bitmap) {
@@ -230,5 +294,6 @@ class GeminiSessionViewModel : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         stopSession()
+        wakeWordListener.stop()
     }
 }

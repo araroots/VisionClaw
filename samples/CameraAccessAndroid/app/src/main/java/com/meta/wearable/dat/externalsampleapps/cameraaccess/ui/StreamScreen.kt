@@ -84,9 +84,11 @@ fun StreamScreen(
         }
     }
 
-    // Clean up on exit
+    // Wake word only listens while this screen is on-screen; clean up everything on exit
     DisposableEffect(Unit) {
+        geminiViewModel.onScreenActive()
         onDispose {
+            geminiViewModel.onScreenInactive()
             if (geminiUiState.isGeminiActive) {
                 geminiViewModel.stopSession()
             }

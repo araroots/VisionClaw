@@ -15,6 +15,13 @@ class AudioManager {
     companion object {
         private const val TAG = "AudioManager"
         private const val MIN_SEND_BYTES = 3200 // 100ms at 16kHz mono Int16 = 1600 frames * 2 bytes
+
+        // Below this RMS, a chunk is treated as ambient noise rather than speech and zeroed out
+        // before being sent -- neither provider's own VAD gets a chance to misread quiet
+        // background noise/breathing as speech if it never receives anything but true silence
+        // for it. Real speech is typically in the low thousands RMS for 16-bit PCM; this leaves
+        // headroom above typical room-noise floors without requiring the user to speak loudly.
+        private const val NOISE_GATE_RMS_THRESHOLD = 500.0
     }
 
     var onAudioCaptured: ((ByteArray) -> Unit)? = null
@@ -98,7 +105,7 @@ class AudioManager {
                     synchronized(accumulateLock) {
                         accumulatedData.write(buffer, 0, read)
                         if (accumulatedData.size() >= MIN_SEND_BYTES) {
-                            val chunk = accumulatedData.toByteArray()
+                            val chunk = applyNoiseGate(accumulatedData.toByteArray())
                             accumulatedData.reset()
                             if (tapCount <= 3) {
                                 Log.d(TAG, "Sending chunk: ${chunk.size} bytes (~${chunk.size / 32}ms)")
@@ -111,6 +118,24 @@ class AudioManager {
         }, "audio-capture").also { it.start() }
 
         Log.d(TAG, "Audio capture started (in=${inputSampleRate}Hz, out=${outputSampleRate}Hz mono PCM16)")
+    }
+
+    // Computes RMS over the 16-bit PCM samples and zeroes the chunk out (keeping its size, so
+    // downstream timing/pacing is unaffected) if it is quiet enough to be ambient noise rather
+    // than speech.
+    private fun applyNoiseGate(chunk: ByteArray): ByteArray {
+        var sumSquares = 0.0
+        var sampleCount = 0
+        var i = 0
+        while (i + 1 < chunk.size) {
+            val sample = ((chunk[i + 1].toInt() shl 8) or (chunk[i].toInt() and 0xFF)).toShort()
+            sumSquares += sample * sample.toDouble()
+            sampleCount++
+            i += 2
+        }
+        if (sampleCount == 0) return chunk
+        val rms = kotlin.math.sqrt(sumSquares / sampleCount)
+        return if (rms < NOISE_GATE_RMS_THRESHOLD) ByteArray(chunk.size) else chunk
     }
 
     fun playAudio(data: ByteArray) {

@@ -280,7 +280,13 @@ class GeminiLiveService : RealtimeAIService {
                 put("realtimeInputConfig", JSONObject().apply {
                     put("automaticActivityDetection", JSONObject().apply {
                         put("disabled", false)
-                        put("startOfSpeechSensitivity", "START_SENSITIVITY_HIGH")
+                        // LOW/LOW is the conservative pairing Google's own docs recommend:
+                        // HIGH start-sensitivity was triggering on ambient noise/breathing as if
+                        // it were speech (HIGH = "easier to trigger, more false positives" per
+                        // the Live API docs), and LOW end-sensitivity meant it then stayed
+                        // "in speech" too long once a false trigger happened, compounding into
+                        // repeated spurious responses.
+                        put("startOfSpeechSensitivity", "START_SENSITIVITY_LOW")
                         put("endOfSpeechSensitivity", "END_SENSITIVITY_LOW")
                         put("silenceDurationMs", 500)
                         put("prefixPaddingMs", 40)

@@ -12,13 +12,15 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
@@ -31,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asImageBitmap
@@ -154,14 +157,18 @@ fun StreamScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Background shown while waiting for the first video frame (instead of blank white)
+        // Background shown while waiting for the first video frame (instead of blank white) --
+        // a fake 360-degree product-showcase spin of the glasses (no real 3D model available,
+        // see RotatingGlasses.kt), centered and slightly above the vertical middle of the screen.
         if (streamUiState.videoFrame == null) {
-            Image(
-                painter = painterResource(id = R.drawable.stream_connecting_background),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
+            Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+                RotatingGlasses(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .offset(y = (-60).dp)
+                        .fillMaxWidth(0.8f),
+                )
+            }
         }
 
         // Video feed
@@ -198,19 +205,18 @@ fun StreamScreen(
             }
 
             // Chat panel (voice + typed history) -- visibility is independent of isGeminiActive
-            // so the log stays reviewable/usable even while the AI toggle is off. Centered in
-            // the upper half of the screen, clear of the status/transcript overlay above and the
-            // controls row below.
+            // so the log stays reviewable/usable even while the AI toggle is off. Kept compact
+            // and pinned just above the controls row so it does not cover most of the camera
+            // view when the camera is active (it used to take half the screen height).
             if (isChatPanelOpen) {
                 ChatPanel(
                     history = conversationHistory,
                     onSend = { geminiViewModel.sendChatMessage(it) },
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .statusBarsPadding()
-                        .padding(top = 96.dp)
-                        .fillMaxWidth(0.92f)
-                        .fillMaxHeight(0.5f),
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 140.dp)
+                        .fillMaxWidth(0.9f)
+                        .heightIn(max = 240.dp),
                 )
             }
 

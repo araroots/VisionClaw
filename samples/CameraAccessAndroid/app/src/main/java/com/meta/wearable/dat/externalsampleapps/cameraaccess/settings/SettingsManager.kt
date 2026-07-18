@@ -123,14 +123,6 @@ object SettingsManager {
         get() = prefs.getBoolean("continuousConversationEnabled", true)
         set(value) = prefs.edit().putBoolean("continuousConversationEnabled", value).apply()
 
-    // Mic capture is routed through the glasses Bluetooth SCO device when available (better
-    // directionality, less ambient noise) -- but that also makes AI voice output follow the same
-    // "communication device" and come out of the glasses earpiece with no way to use the phone
-    // speaker instead. This lets the user override just the output side independently.
-    var useSpeakerForAiVoice: Boolean
-        get() = prefs.getBoolean("useSpeakerForAiVoice", false)
-        set(value) = prefs.edit().putBoolean("useSpeakerForAiVoice", value).apply()
-
     // Playback speed for the AI's spoken responses (both Gemini Live and OpenAI Realtime share
     // the same AudioManager output path, so this applies to either provider). Pitch is kept
     // constant regardless of speed -- see AudioManager's use of PlaybackParams.

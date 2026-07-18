@@ -1,9 +1,7 @@
 package com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.media.AudioAttributes
-import android.media.AudioDeviceInfo
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.AudioTrack
@@ -13,10 +11,7 @@ import android.util.Log
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
 import java.io.ByteArrayOutputStream
 
-// Named AudioManager like the platform class it wraps parts of -- referred to as
-// android.media.AudioManager (fully qualified) below wherever the system service is needed, to
-// avoid colliding with this class's own name.
-class AudioManager(private val context: Context) {
+class AudioManager {
     companion object {
         private const val TAG = "AudioManager"
         private const val MIN_SEND_BYTES = 3200 // 100ms at 16kHz mono Int16 = 1600 frames * 2 bytes
@@ -43,12 +38,11 @@ class AudioManager(private val context: Context) {
     fun startCapture(inputSampleRate: Int, outputSampleRate: Int) {
         if (isCapturing) return
 
-        // Prefer the glasses' Bluetooth mic over the phone's own -- the glasses are paired as a
-        // standard Bluetooth audio device (confirmed in the phone's Bluetooth settings) and sit
-        // right next to the wearer's mouth, so routing capture through them instead of the
-        // phone's mic (which just picks up whoever/whatever is nearest to the phone) should cut
-        // down on ambient conversations/noise getting captured as if they were the user talking.
-        routeToBluetoothMicIfAvailable()
+        // Tried routing capture through the glasses' Bluetooth SCO mic for better directionality,
+        // but Bluetooth SCO (voice) and A2DP (media) cannot run at once on the same link -- it
+        // silently paused/killed any music playing on the phone the whole time the AI was
+        // listening, which was worse than the noise-pickup problem it was meant to fix. Reverted
+        // to the phone's own default mic.
 
         val bufferSize = AudioRecord.getMinBufferSize(
             inputSampleRate,
@@ -87,12 +81,6 @@ class AudioManager(private val context: Context) {
                 ) * 2
             )
             .build()
-
-        // Independent of the input routing above -- lets the user hear AI responses through the
-        // phone speaker even while the mic still captures via the glasses Bluetooth SCO device.
-        if (SettingsManager.useSpeakerForAiVoice) {
-            routeOutputToSpeaker()
-        }
 
         // Speed up spoken responses while keeping pitch natural (pitch=1f decouples it from
         // speed -- otherwise a faster speed also raises pitch, a la a sped-up tape).
@@ -136,40 +124,6 @@ class AudioManager(private val context: Context) {
         }, "audio-capture").also { it.start() }
 
         Log.d(TAG, "Audio capture started (in=${inputSampleRate}Hz, out=${outputSampleRate}Hz mono PCM16)")
-    }
-
-    private fun routeToBluetoothMicIfAvailable() {
-        try {
-            val systemAudioManager =
-                context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
-            val bluetoothDevice = systemAudioManager.availableCommunicationDevices
-                .firstOrNull { it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO }
-            if (bluetoothDevice != null) {
-                val routed = systemAudioManager.setCommunicationDevice(bluetoothDevice)
-                Log.d(TAG, "Routed capture to Bluetooth (glasses) mic: $routed")
-            } else {
-                Log.d(TAG, "No Bluetooth SCO device connected, using the default mic")
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to route capture to Bluetooth mic: ${e.message}")
-        }
-    }
-
-    private fun routeOutputToSpeaker() {
-        try {
-            val systemAudioManager =
-                context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
-            val speakerDevice = systemAudioManager.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
-                .firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
-            if (speakerDevice != null) {
-                val routed = audioTrack?.setPreferredDevice(speakerDevice)
-                Log.d(TAG, "Routed AI voice output to phone speaker: $routed")
-            } else {
-                Log.w(TAG, "No built-in speaker device found")
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to route output to speaker: ${e.message}")
-        }
     }
 
     // Computes RMS over the 16-bit PCM samples and zeroes the chunk out (keeping its size, so
@@ -224,14 +178,6 @@ class AudioManager(private val context: Context) {
         audioTrack?.stop()
         audioTrack?.release()
         audioTrack = null
-
-        try {
-            val systemAudioManager =
-                context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
-            systemAudioManager.clearCommunicationDevice()
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to clear communication device: ${e.message}")
-        }
 
         Log.d(TAG, "Audio capture stopped")
     }

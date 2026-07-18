@@ -280,7 +280,12 @@ class OpenAIRealtimeService : RealtimeAIService {
                         })
                         put("turn_detection", JSONObject().apply {
                             put("type", "server_vad")
-                            put("threshold", 0.5)
+                            // Raised from the 0.5 default -- ambient noise/breathing picked up
+                            // by the glasses mic was being read as speech, triggering spurious
+                            // responses. OpenAI's own guidance: a higher threshold requires
+                            // louder, clearer audio to activate, which performs better in noisy
+                            // environments (0.5 is tuned for quiet/close-mic conditions).
+                            put("threshold", 0.7)
                             put("prefix_padding_ms", 300)
                             put("silence_duration_ms", 500)
                             put("create_response", true)

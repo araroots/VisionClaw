@@ -1,7 +1,9 @@
 package com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.AudioTrack
@@ -11,7 +13,10 @@ import android.util.Log
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
 import java.io.ByteArrayOutputStream
 
-class AudioManager {
+// Named AudioManager like the platform class it wraps parts of -- referred to as
+// android.media.AudioManager (fully qualified) below wherever the system service is needed, to
+// avoid colliding with this class's own name.
+class AudioManager(private val context: Context) {
     companion object {
         private const val TAG = "AudioManager"
         private const val MIN_SEND_BYTES = 3200 // 100ms at 16kHz mono Int16 = 1600 frames * 2 bytes
@@ -37,6 +42,13 @@ class AudioManager {
     @SuppressLint("MissingPermission")
     fun startCapture(inputSampleRate: Int, outputSampleRate: Int) {
         if (isCapturing) return
+
+        // Prefer the glasses' Bluetooth mic over the phone's own -- the glasses are paired as a
+        // standard Bluetooth audio device (confirmed in the phone's Bluetooth settings) and sit
+        // right next to the wearer's mouth, so routing capture through them instead of the
+        // phone's mic (which just picks up whoever/whatever is nearest to the phone) should cut
+        // down on ambient conversations/noise getting captured as if they were the user talking.
+        routeToBluetoothMicIfAvailable()
 
         val bufferSize = AudioRecord.getMinBufferSize(
             inputSampleRate,
@@ -120,6 +132,23 @@ class AudioManager {
         Log.d(TAG, "Audio capture started (in=${inputSampleRate}Hz, out=${outputSampleRate}Hz mono PCM16)")
     }
 
+    private fun routeToBluetoothMicIfAvailable() {
+        try {
+            val systemAudioManager =
+                context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+            val bluetoothDevice = systemAudioManager.availableCommunicationDevices
+                .firstOrNull { it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO }
+            if (bluetoothDevice != null) {
+                val routed = systemAudioManager.setCommunicationDevice(bluetoothDevice)
+                Log.d(TAG, "Routed capture to Bluetooth (glasses) mic: $routed")
+            } else {
+                Log.d(TAG, "No Bluetooth SCO device connected, using the default mic")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to route capture to Bluetooth mic: ${e.message}")
+        }
+    }
+
     // Computes RMS over the 16-bit PCM samples and zeroes the chunk out (keeping its size, so
     // downstream timing/pacing is unaffected) if it is quiet enough to be ambient noise rather
     // than speech.
@@ -172,6 +201,14 @@ class AudioManager {
         audioTrack?.stop()
         audioTrack?.release()
         audioTrack = null
+
+        try {
+            val systemAudioManager =
+                context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+            systemAudioManager.clearCommunicationDevice()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to clear communication device: ${e.message}")
+        }
 
         Log.d(TAG, "Audio capture stopped")
     }

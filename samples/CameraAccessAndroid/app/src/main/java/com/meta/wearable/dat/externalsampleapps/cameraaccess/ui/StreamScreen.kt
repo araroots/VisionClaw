@@ -39,7 +39,6 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -158,11 +157,11 @@ fun StreamScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         // Background shown while waiting for the first video frame (instead of blank white) --
-        // a fake 360-degree product-showcase spin of the glasses (no real 3D model available,
-        // see RotatingGlasses.kt), centered and slightly above the vertical middle of the screen.
+        // a real AI-generated 360-degree turntable spin of the glasses (see RotatingGlassesVideo.kt),
+        // centered and slightly above the vertical middle of the screen.
         if (streamUiState.videoFrame == null) {
             Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
-                RotatingGlasses(
+                RotatingGlassesVideo(
                     modifier = Modifier
                         .align(Alignment.Center)
                         .offset(y = (-60).dp)

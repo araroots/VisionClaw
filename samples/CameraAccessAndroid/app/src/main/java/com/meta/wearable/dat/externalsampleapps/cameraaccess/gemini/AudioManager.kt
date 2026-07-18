@@ -88,6 +88,12 @@ class AudioManager(private val context: Context) {
             )
             .build()
 
+        // Independent of the input routing above -- lets the user hear AI responses through the
+        // phone speaker even while the mic still captures via the glasses Bluetooth SCO device.
+        if (SettingsManager.useSpeakerForAiVoice) {
+            routeOutputToSpeaker()
+        }
+
         // Speed up spoken responses while keeping pitch natural (pitch=1f decouples it from
         // speed -- otherwise a faster speed also raises pitch, a la a sped-up tape).
         val speed = SettingsManager.aiSpeechSpeed
@@ -146,6 +152,23 @@ class AudioManager(private val context: Context) {
             }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to route capture to Bluetooth mic: ${e.message}")
+        }
+    }
+
+    private fun routeOutputToSpeaker() {
+        try {
+            val systemAudioManager =
+                context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+            val speakerDevice = systemAudioManager.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
+                .firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+            if (speakerDevice != null) {
+                val routed = audioTrack?.setPreferredDevice(speakerDevice)
+                Log.d(TAG, "Routed AI voice output to phone speaker: $routed")
+            } else {
+                Log.w(TAG, "No built-in speaker device found")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to route output to speaker: ${e.message}")
         }
     }
 

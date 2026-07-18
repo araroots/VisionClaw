@@ -72,6 +72,7 @@ fun SettingsScreen(
     var recordingStopPhrase by remember { mutableStateOf(SettingsManager.recordingStopPhrase) }
     var continuousConversationEnabled by remember { mutableStateOf(SettingsManager.continuousConversationEnabled) }
     var aiSpeechSpeed by remember { mutableStateOf(SettingsManager.aiSpeechSpeed) }
+    var useSpeakerForAiVoice by remember { mutableStateOf(SettingsManager.useSpeakerForAiVoice) }
     var videoQuality by remember { mutableStateOf(SettingsManager.videoQuality) }
     var videoFrameRate by remember { mutableStateOf(SettingsManager.videoFrameRate.toString()) }
     var imageBrightness by remember { mutableStateOf(SettingsManager.imageBrightness) }
@@ -105,6 +106,7 @@ fun SettingsScreen(
         SettingsManager.recordingStopPhrase = recordingStopPhrase.trim().ifEmpty { SettingsManager.DEFAULT_RECORDING_STOP_PHRASE }
         SettingsManager.continuousConversationEnabled = continuousConversationEnabled
         SettingsManager.aiSpeechSpeed = aiSpeechSpeed
+        SettingsManager.useSpeakerForAiVoice = useSpeakerForAiVoice
         SettingsManager.videoQuality = videoQuality
         videoFrameRate.trim().toIntOrNull()?.let { SettingsManager.videoFrameRate = it }
         SettingsManager.imageBrightness = imageBrightness
@@ -138,6 +140,7 @@ fun SettingsScreen(
         recordingStopPhrase = SettingsManager.recordingStopPhrase
         continuousConversationEnabled = SettingsManager.continuousConversationEnabled
         aiSpeechSpeed = SettingsManager.aiSpeechSpeed
+        useSpeakerForAiVoice = SettingsManager.useSpeakerForAiVoice
         videoQuality = SettingsManager.videoQuality
         videoFrameRate = SettingsManager.videoFrameRate.toString()
         imageBrightness = SettingsManager.imageBrightness
@@ -470,6 +473,24 @@ fun SettingsScreen(
                 onValueChange = { aiSpeechSpeed = it },
                 valueRange = 0.75f..2f,
             )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("Use Phone Speaker", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Play AI responses through the phone speaker instead of the glasses earpiece. Mic capture still uses the glasses.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = useSpeakerForAiVoice,
+                    onCheckedChange = { useSpeakerForAiVoice = it },
+                )
+            }
 
             // Video Quality
             SectionHeader("Video Quality")

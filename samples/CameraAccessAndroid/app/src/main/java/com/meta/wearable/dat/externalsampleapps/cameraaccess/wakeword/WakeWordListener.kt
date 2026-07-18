@@ -3,6 +3,8 @@ package com.meta.wearable.dat.externalsampleapps.cameraaccess.wakeword
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -23,30 +25,40 @@ class WakeWordListener(private val context: Context) {
     private var triggered = false
     private var triggers: List<Trigger> = emptyList()
 
+    // SpeechRecognizer must only ever be touched from the main thread -- but start()/stop() can
+    // get called from background threads (e.g. a WebSocket failure callback triggering
+    // stopSession() -> refreshWakeWordListening() from an OkHttp thread), which used to crash
+    // the whole app. Posting through this handler makes both safe to call from any thread.
+    private val mainHandler = Handler(Looper.getMainLooper())
+
     // Listens for any number of distinct phrases in the same recognition session (a single
     // SpeechRecognizer instance is what's reliable on-device -- running two in parallel isn't),
     // invoking whichever phrase's callback matches first.
     fun start(phrases: List<Pair<String, () -> Unit>>) {
-        if (isListening) return
-        if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            Log.w(TAG, "Speech recognition not available on this device")
-            return
+        mainHandler.post {
+            if (isListening) return@post
+            if (!SpeechRecognizer.isRecognitionAvailable(context)) {
+                Log.w(TAG, "Speech recognition not available on this device")
+                return@post
+            }
+            triggers = phrases
+                .map { (phrase, callback) -> Trigger(normalizePhrase(phrase), callback) }
+                .filter { it.normalizedPhrase.isNotEmpty() }
+            if (triggers.isEmpty()) return@post
+            isListening = true
+            createAndStartRecognizer()
         }
-        triggers = phrases
-            .map { (phrase, callback) -> Trigger(normalizePhrase(phrase), callback) }
-            .filter { it.normalizedPhrase.isNotEmpty() }
-        if (triggers.isEmpty()) return
-        isListening = true
-        createAndStartRecognizer()
     }
 
     fun stop() {
-        isListening = false
-        recognizer?.let {
-            it.setRecognitionListener(null)
-            it.destroy()
+        mainHandler.post {
+            isListening = false
+            recognizer?.let {
+                it.setRecognitionListener(null)
+                it.destroy()
+            }
+            recognizer = null
         }
-        recognizer = null
     }
 
     private fun createAndStartRecognizer() {

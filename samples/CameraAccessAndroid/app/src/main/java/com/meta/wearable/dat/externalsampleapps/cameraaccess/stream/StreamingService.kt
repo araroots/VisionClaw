@@ -66,10 +66,14 @@ class StreamingService : Service() {
     val notification = createNotification()
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      // MICROPHONE is required here (not just CONNECTED_DEVICE) or Android cuts mic access to
+      // the AI voice session as soon as the screen turns off/the app leaves the foreground --
+      // a background app without a foreground service declaring this type cannot record audio.
       startForeground(
           NOTIFICATION_ID,
           notification,
-          ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
+          ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE or
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
       )
     } else {
       startForeground(NOTIFICATION_ID, notification)
@@ -116,8 +120,8 @@ class StreamingService : Service() {
         )
 
     return NotificationCompat.Builder(this, CHANNEL_ID)
-        .setContentTitle("Camera Streaming")
-        .setContentText("Streaming from your glasses...")
+        .setContentTitle("VisionClaw active")
+        .setContentText("Camera and/or AI voice session running...")
         .setSmallIcon(R.drawable.ic_launcher_foreground)
         .setOngoing(true)
         .setContentIntent(pendingIntent)

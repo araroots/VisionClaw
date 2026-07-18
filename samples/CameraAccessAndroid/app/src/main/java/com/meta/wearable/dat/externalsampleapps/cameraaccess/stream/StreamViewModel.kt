@@ -134,8 +134,12 @@ class StreamViewModel(
   }
 
   fun stopStream() {
-    // Stop foreground service
-    StreamingService.stop(getApplication())
+    // Only stop the shared foreground service if the AI is not also relying on it for
+    // background mic access -- GeminiSessionViewModel started it independently for that and
+    // will stop it itself.
+    if (geminiViewModel?.uiState?.value?.isGeminiActive != true) {
+      StreamingService.stop(getApplication())
+    }
 
     videoJob?.cancel()
     videoJob = null

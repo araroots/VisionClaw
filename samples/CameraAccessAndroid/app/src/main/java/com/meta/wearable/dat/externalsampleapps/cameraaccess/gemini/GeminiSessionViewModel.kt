@@ -15,6 +15,8 @@ import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.ToolCallSt
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.ToolResult
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.StreamViewModel
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.StreamingMode
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.stream.StreamingService
+import com.meta.wearable.dat.camera.types.StreamSessionState
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.wakeword.WakeWordListener
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.wakeword.normalizePhrase
 import kotlinx.coroutines.Job
@@ -160,6 +162,12 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
     fun startSession() {
         if (_uiState.value.isGeminiActive) return
         wakeWordListener.stop()
+
+        // Keeps the mic (and network) alive once the screen turns off or the app leaves the
+        // foreground -- without a running foreground service declaring the microphone type,
+        // Android cuts audio capture entirely for background apps. Safe to call even if
+        // StreamViewModel already started it for camera streaming (idempotent).
+        StreamingService.start(getApplication())
 
         val provider = SettingsManager.aiProvider
         val configured = when (provider) {
@@ -394,6 +402,14 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
         stateObservationJob = null
         _uiState.value = GeminiUiState()
         refreshWakeWordListening()
+
+        // Only stop the shared foreground service if the camera is not also relying on it --
+        // StreamViewModel started it independently for streaming and will stop it itself.
+        val cameraStillStreaming = streamViewModel?.uiState?.value?.streamSessionState ==
+            StreamSessionState.STREAMING
+        if (!cameraStillStreaming) {
+            StreamingService.stop(getApplication())
+        }
     }
 
     fun sendVideoFrameIfThrottled(bitmap: Bitmap) {

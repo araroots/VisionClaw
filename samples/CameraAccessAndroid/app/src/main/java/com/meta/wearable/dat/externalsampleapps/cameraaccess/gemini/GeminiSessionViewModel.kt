@@ -98,6 +98,7 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
     fun onScreenInactive() {
         isScreenActive = false
         wakeWordListener.stop()
+        stopStreamingServiceIfIdle()
     }
 
     private fun refreshWakeWordListening() {
@@ -136,12 +137,28 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
                 })
             }
             if (triggers.isNotEmpty()) {
+                // Keep listening alive even with the screen off or the app backgrounded --
+                // hands-free, phone-in-pocket use is the whole point of wake words, and Android
+                // cuts mic access for background apps without this.
+                StreamingService.start(getApplication())
                 wakeWordListener.start(triggers)
             } else {
                 wakeWordListener.stop()
+                stopStreamingServiceIfIdle()
             }
         } else {
             wakeWordListener.stop()
+            stopStreamingServiceIfIdle()
+        }
+    }
+
+    // Only stop the shared foreground service if nothing else needs it -- StreamViewModel may
+    // still be relying on it for camera streaming.
+    private fun stopStreamingServiceIfIdle() {
+        val cameraStillStreaming = streamViewModel?.uiState?.value?.streamSessionState ==
+            StreamSessionState.STREAMING
+        if (!_uiState.value.isGeminiActive && !cameraStillStreaming) {
+            StreamingService.stop(getApplication())
         }
     }
 
@@ -401,15 +418,9 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
         stateObservationJob?.cancel()
         stateObservationJob = null
         _uiState.value = GeminiUiState()
+        // Decides on its own whether the shared foreground service should keep running (wake
+        // words listening, or camera still streaming) or stop.
         refreshWakeWordListening()
-
-        // Only stop the shared foreground service if the camera is not also relying on it --
-        // StreamViewModel started it independently for streaming and will stop it itself.
-        val cameraStillStreaming = streamViewModel?.uiState?.value?.streamSessionState ==
-            StreamSessionState.STREAMING
-        if (!cameraStillStreaming) {
-            StreamingService.stop(getApplication())
-        }
     }
 
     fun sendVideoFrameIfThrottled(bitmap: Bitmap) {

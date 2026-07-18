@@ -214,7 +214,7 @@ fun StreamScreen(
                     onSend = { geminiViewModel.sendChatMessage(it) },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 140.dp)
+                        .padding(bottom = 190.dp)
                         .fillMaxWidth(0.9f)
                         .heightIn(max = 240.dp),
                 )

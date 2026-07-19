@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 
 @Composable
 fun ControlsRow(
@@ -94,7 +95,7 @@ fun ControlsRow(
                 shape = RoundedCornerShape(18.dp),
                 contentPadding = PaddingValues(0.dp),
             ) {
-                Icon(imageVector = Icons.Default.Close, contentDescription = "Stop", tint = Color.White)
+                Icon(imageVector = Icons.Default.Close, contentDescription = tr("Parar", "Stop"), tint = Color.White)
             }
 
             Button(
@@ -107,7 +108,7 @@ fun ControlsRow(
             ) {
                 Icon(
                     imageVector = Icons.Default.PhotoCamera,
-                    contentDescription = "Capture Photo",
+                    contentDescription = tr("Capturar Foto", "Capture Photo"),
                     tint = Color.Black,
                 )
             }
@@ -128,7 +129,7 @@ fun ControlsRow(
                 ) {
                     Icon(
                         imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = if (isAIActive) "Stop AI" else "Start AI",
+                        contentDescription = if (isAIActive) tr("Parar IA", "Stop AI") else tr("Iniciar IA", "Start AI"),
                         tint = Color.White,
                         modifier = Modifier.height(22.dp),
                     )
@@ -153,7 +154,7 @@ fun ControlsRow(
             ) {
                 Icon(
                     imageVector = Icons.Default.Videocam,
-                    contentDescription = if (isLiveActive) "Stop Live" else "Start Live",
+                    contentDescription = if (isLiveActive) tr("Parar Live", "Stop Live") else tr("Iniciar Live", "Start Live"),
                     tint = Color.White,
                 )
             }
@@ -164,19 +165,27 @@ fun ControlsRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
         ) {
+            // A translucent-white pill reads fine over the video feed but disappears entirely
+            // over the plain white background shown before the glasses' first frame arrives
+            // (RotatingGlassesVideo in StreamScreen) -- a dark scrim instead guarantees contrast
+            // against both a bright idle background and busy video content.
             Button(
                 onClick = { isMoreOpen = !isMoreOpen },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White.copy(alpha = 0.08f),
-                    contentColor = Color.White.copy(alpha = 0.85f),
+                    containerColor = Color.Black.copy(alpha = 0.45f),
+                    contentColor = Color.White,
                 ),
                 shape = RoundedCornerShape(999.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             ) {
-                Text(text = "Mais opções", fontSize = 13.sp)
+                Text(text = tr("Mais opções", "More options"), fontSize = 13.sp)
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
-                    contentDescription = if (isMoreOpen) "Hide more options" else "Show more options",
+                    contentDescription = if (isMoreOpen) {
+                        tr("Ocultar mais opções", "Hide more options")
+                    } else {
+                        tr("Mostrar mais opções", "Show more options")
+                    },
                     modifier = Modifier.padding(start = 4.dp).height(16.dp).rotate(chevronRotation),
                 )
             }
@@ -192,7 +201,7 @@ fun ControlsRow(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ChipButton(
-                        label = "Câmera",
+                        label = tr("Câmera", "Camera"),
                         icon = Icons.Default.CameraAlt,
                         isOn = isCameraActive,
                         onColor = AppColor.Yellow,
@@ -210,7 +219,7 @@ fun ControlsRow(
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ChipButton(
-                        label = if (isMicMuted) "Mic Mudo" else "Mic",
+                        label = if (isMicMuted) tr("Mic Mudo", "Mic Muted") else tr("Mic", "Mic"),
                         icon = if (isMicMuted) Icons.Default.MicOff else Icons.Default.Mic,
                         isOn = isMicMuted,
                         onColor = AppColor.Red,
@@ -218,7 +227,7 @@ fun ControlsRow(
                         modifier = Modifier.weight(1f),
                     )
                     ChipButton(
-                        label = "Speaker",
+                        label = tr("Alto-falante", "Speaker"),
                         icon = if (isSpeakerOn) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
                         isOn = isSpeakerOn,
                         onColor = AppColor.Green,
@@ -236,7 +245,7 @@ fun ControlsRow(
                         modifier = Modifier.weight(1f),
                     )
                     ChipButton(
-                        label = "Gravar",
+                        label = tr("Gravar", "Record"),
                         icon = Icons.Default.FiberManualRecord,
                         isOn = isRecording,
                         onColor = AppColor.Red,

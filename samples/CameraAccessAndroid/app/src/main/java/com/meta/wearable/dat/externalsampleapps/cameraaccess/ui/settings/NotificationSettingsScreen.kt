@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,10 +36,10 @@ fun NotificationSettingsScreen(
 
     Column(modifier = modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("Notifications") },
+            title = { Text(tr("Notificações", "Notifications")) },
             navigationIcon = {
                 IconButton(onClick = { save(); onBack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Voltar", "Back"))
                 }
             },
         )
@@ -51,8 +52,11 @@ fun NotificationSettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             SwitchRow(
-                title = "Proactive Notifications",
-                description = "Receive updates from OpenClaw spoken through glasses.",
+                title = tr("Notificações Proativas", "Proactive Notifications"),
+                description = tr(
+                    "Receba atualizações do OpenClaw faladas pelos óculos.",
+                    "Receive updates from OpenClaw spoken through glasses.",
+                ),
                 checked = proactiveNotificationsEnabled,
                 onCheckedChange = { proactiveNotificationsEnabled = it },
             )

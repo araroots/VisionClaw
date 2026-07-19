@@ -24,10 +24,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.R
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 
 @Composable
 fun SharePhotoDialog(photo: Bitmap, onDismiss: () -> Unit, onShare: (Bitmap) -> Unit) {
@@ -41,16 +40,16 @@ fun SharePhotoDialog(photo: Bitmap, onDismiss: () -> Unit, onShare: (Bitmap) -> 
           horizontalAlignment = Alignment.CenterHorizontally,
           verticalArrangement = Arrangement.spacedBy(16.dp),
       ) {
-        Text(text = stringResource(R.string.photo_captured))
+        Text(text = tr("Foto Capturada", "Photo Captured"))
 
         Image(
             bitmap = photo.asImageBitmap(),
-            contentDescription = stringResource(R.string.captured_photo),
+            contentDescription = tr("Foto Capturada", "Captured Photo"),
             modifier = Modifier.fillMaxWidth().height(300.dp),
         )
 
         Button(onClick = { onShare(photo) }, modifier = Modifier.fillMaxWidth()) {
-          Text(stringResource(R.string.share))
+          Text(tr("Compartilhar", "Share"))
         }
       }
     }

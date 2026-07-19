@@ -52,7 +52,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -61,6 +60,7 @@ import com.meta.wearable.dat.core.types.Permission
 import com.meta.wearable.dat.core.types.PermissionStatus
 import com.meta.wearable.dat.core.types.RegistrationState
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.R
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.wearables.WearablesViewModel
 import kotlinx.coroutines.launch
 
@@ -78,6 +78,9 @@ fun NonStreamScreen(
   val isDisconnectEnabled = uiState.registrationState is RegistrationState.Registered
   val activity = LocalActivity.current
   val context = LocalContext.current
+  // Hoisted out of the onClick lambda below -- tr() is @Composable and can't be called from a
+  // plain event-handler lambda, only from composable scope.
+  val activityNotAvailableMessage = tr("Activity não disponível", "Activity not available")
 
   MaterialTheme(colorScheme = darkColorScheme()) {
     Box(
@@ -92,7 +95,7 @@ fun NonStreamScreen(
         IconButton(onClick = { viewModel.showHistory() }) {
           Icon(
               imageVector = Icons.Default.History,
-              contentDescription = "Conversation History",
+              contentDescription = tr("Histórico de Conversas", "Conversation History"),
               tint = Color.White,
               modifier = Modifier.size(28.dp),
           )
@@ -101,7 +104,7 @@ fun NonStreamScreen(
         IconButton(onClick = { viewModel.showSettings() }) {
           Icon(
               imageVector = Icons.Default.Settings,
-              contentDescription = "Settings",
+              contentDescription = tr("Configurações", "Settings"),
               tint = Color.White,
               modifier = Modifier.size(28.dp),
           )
@@ -111,7 +114,7 @@ fun NonStreamScreen(
           IconButton(onClick = { dropdownExpanded = true }) {
             Icon(
                 imageVector = Icons.Default.LinkOff,
-                contentDescription = "DisconnectIcon",
+                contentDescription = tr("Ícone de Desconectar", "DisconnectIcon"),
                 tint = Color.White,
                 modifier = Modifier.size(28.dp),
             )
@@ -124,15 +127,14 @@ fun NonStreamScreen(
             DropdownMenuItem(
                 text = {
                   Text(
-                      stringResource(R.string.unregister_button_title),
+                      tr("Desconectar", "Disconnect"),
                       color = if (isDisconnectEnabled) AppColor.Red else Color.Gray,
                   )
                 },
                 enabled = isDisconnectEnabled,
                 onClick = {
                   activity?.let { viewModel.startUnregistration(it) }
-                      ?: Toast.makeText(context, "Activity not available", Toast.LENGTH_SHORT)
-                          .show()
+                      ?: Toast.makeText(context, activityNotAvailableMessage, Toast.LENGTH_SHORT).show()
                   dropdownExpanded = false
                 },
                 modifier = Modifier.height(30.dp),
@@ -147,19 +149,22 @@ fun NonStreamScreen(
       ) {
         Icon(
             painter = painterResource(id = R.drawable.camera_access_icon),
-            contentDescription = stringResource(R.string.camera_access_icon_description),
+            contentDescription = tr("Ícone do Camera Access", "Camera Access icon"),
             tint = Color.White,
             modifier = Modifier.size(80.dp * LocalDensity.current.density),
         )
         Text(
-            text = stringResource(R.string.non_stream_screen_title),
+            text = tr("Transmita a Câmera dos Seus Óculos", "Stream Your Glasses Camera"),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             color = Color.White,
         )
         Text(
-            text = stringResource(R.string.non_stream_screen_description),
+            text = tr(
+                "Toque no botão Iniciar transmissão para transmitir vídeo dos seus óculos, ou use o botão de câmera para tirar uma foto pelos seus óculos.",
+                "Tap the Start streaming button to stream video from your glasses or use the camera button to take a photo from your glasses.",
+            ),
             textAlign = TextAlign.Center,
             color = Color.White,
         )
@@ -178,12 +183,12 @@ fun NonStreamScreen(
           ) {
             Icon(
                 painter = painterResource(id = R.drawable.hourglass_icon),
-                contentDescription = "Waiting for device",
+                contentDescription = tr("Aguardando dispositivo", "Waiting for device"),
                 tint = Color.White.copy(alpha = 0.7f),
                 modifier = Modifier.size(16.dp),
             )
             Text(
-                text = stringResource(R.string.waiting_for_active_device),
+                text = tr("Aguardando um dispositivo ativo", "Waiting for an active device"),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.7f),
             )
@@ -192,14 +197,14 @@ fun NonStreamScreen(
 
         // Start Streaming Button (glasses)
         SwitchButton(
-            label = stringResource(R.string.stream_button_title),
+            label = tr("Iniciar transmissão", "Start streaming"),
             onClick = { viewModel.navigateToStreaming(onRequestWearablesPermission) },
             enabled = uiState.hasActiveDevice,
         )
 
         // Start on Phone Button
         SwitchButton(
-            label = "Start on Phone",
+            label = tr("Iniciar no Celular", "Start on Phone"),
             onClick = { viewModel.navigateToPhoneMode() },
         )
       }
@@ -232,7 +237,7 @@ private fun GettingStartedSheetContent(onContinue: () -> Unit, modifier: Modifie
       verticalArrangement = Arrangement.spacedBy(24.dp),
   ) {
     Text(
-        text = stringResource(R.string.getting_started_title),
+        text = tr("Primeiros passos", "Getting started"),
         style = MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.SemiBold,
         textAlign = TextAlign.Center,
@@ -244,20 +249,26 @@ private fun GettingStartedSheetContent(onContinue: () -> Unit, modifier: Modifie
     ) {
       TipItem(
           iconResId = R.drawable.video_icon,
-          text = stringResource(R.string.getting_started_tip_permission),
+          text = tr(
+              "Primeiro, o Camera Access precisa de permissão para usar a câmera dos seus óculos.",
+              "First, Camera Access needs permission to use your glasses camera.",
+          ),
       )
       TipItem(
           iconResId = R.drawable.tap_icon,
-          text = stringResource(R.string.getting_started_tip_photo),
+          text = tr("Capture fotos tocando no botão da câmera.", "Capture photos by tapping the camera button."),
       )
       TipItem(
           iconResId = R.drawable.smart_glasses_icon,
-          text = stringResource(R.string.getting_started_tip_led),
+          text = tr(
+              "O LED de captura avisa outras pessoas quando você está capturando conteúdo ou ao vivo.",
+              "The capture LED lets others know when you're capturing content or going live.",
+          ),
       )
     }
 
     SwitchButton(
-        label = stringResource(R.string.getting_started_continue),
+        label = tr("Continuar", "Continue"),
         onClick = onContinue,
         modifier = Modifier.navigationBarsPadding(),
     )
@@ -269,7 +280,7 @@ private fun TipItem(iconResId: Int, text: String, modifier: Modifier = Modifier)
   Row(modifier = modifier.fillMaxWidth()) {
     Icon(
         painter = painterResource(id = iconResId),
-        contentDescription = "Getting started tip icon",
+        contentDescription = tr("Ícone de dica inicial", "Getting started tip icon"),
         modifier = Modifier.padding(start = 4.dp, top = 4.dp).width(24.dp),
     )
     Spacer(modifier = Modifier.width(10.dp))

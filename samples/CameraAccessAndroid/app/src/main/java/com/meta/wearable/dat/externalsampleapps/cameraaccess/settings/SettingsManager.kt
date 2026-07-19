@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.meta.wearable.dat.camera.types.VideoQuality
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.Secrets
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 object SettingsManager {
     private const val PREFS_NAME = "visionclaw_settings"
@@ -12,17 +15,30 @@ object SettingsManager {
 
     fun init(context: Context) {
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        _appLanguageFlow.value = readAppLanguage()
     }
 
-    // Drives the wake-word speech recognizer's locale and the default (uncustomized) voice
-    // trigger phrases -- lets an English speaker use the app without needing Portuguese.
+    private fun readAppLanguage(): AppLanguage = try {
+        AppLanguage.valueOf(prefs.getString("appLanguage", null) ?: AppLanguage.PORTUGUESE.name)
+    } catch (e: IllegalArgumentException) {
+        AppLanguage.PORTUGUESE
+    }
+
+    // Backed by a StateFlow (not just SharedPreferences) so that toggling it from one screen
+    // (the flag on HomeScreen) recomposes every other screen that reads it through
+    // LocalAppLanguage/tr() -- a plain pref read would only pick up the new value the next time
+    // that composable happened to recompose for some other reason.
+    private val _appLanguageFlow = MutableStateFlow(AppLanguage.PORTUGUESE)
+    val appLanguageFlow: StateFlow<AppLanguage> = _appLanguageFlow.asStateFlow()
+
+    // Drives the wake-word speech recognizer's locale, the default (uncustomized) voice trigger
+    // phrases, and (via LocalAppLanguage/tr()) every translated UI string in the app.
     var appLanguage: AppLanguage
-        get() = try {
-            AppLanguage.valueOf(prefs.getString("appLanguage", null) ?: AppLanguage.PORTUGUESE.name)
-        } catch (e: IllegalArgumentException) {
-            AppLanguage.PORTUGUESE
+        get() = _appLanguageFlow.value
+        set(value) {
+            prefs.edit().putString("appLanguage", value.name).apply()
+            _appLanguageFlow.value = value
         }
-        set(value) = prefs.edit().putString("appLanguage", value.name).apply()
 
     var aiProvider: AIProvider
         get() = try {

@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 
 // Gateway connection details and which OpenClaw agent handles delegated tasks.
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,7 +51,7 @@ fun OpenClawSettingsScreen(
             title = { Text("OpenClaw") },
             navigationIcon = {
                 IconButton(onClick = { save(); onBack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Voltar", "Back"))
                 }
             },
         )
@@ -74,27 +75,27 @@ fun OpenClawSettingsScreen(
             MonoTextField(
                 value = openClawPort,
                 onValueChange = { openClawPort = it },
-                label = "Port",
+                label = tr("Porta", "Port"),
                 placeholder = "18789",
                 keyboardType = KeyboardType.Number,
             )
             MonoTextField(
                 value = openClawHookToken,
                 onValueChange = { openClawHookToken = it },
-                label = "Hook Token",
-                placeholder = "Hook token",
+                label = tr("Token do Hook", "Hook Token"),
+                placeholder = tr("Token do hook", "Hook token"),
             )
             MonoTextField(
                 value = openClawGatewayToken,
                 onValueChange = { openClawGatewayToken = it },
-                label = "Gateway Token",
-                placeholder = "Gateway auth token",
+                label = tr("Token do Gateway", "Gateway Token"),
+                placeholder = tr("Token de autenticação do gateway", "Gateway auth token"),
             )
             MonoTextField(
                 value = openClawAgentId,
                 onValueChange = { openClawAgentId = it },
-                label = "Agent ID",
-                placeholder = "Blank = default agent (e.g. developer)",
+                label = tr("ID do Agente", "Agent ID"),
+                placeholder = tr("Vazio = agente padrão (ex: developer)", "Blank = default agent (e.g. developer)"),
             )
         }
     }

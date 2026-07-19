@@ -35,6 +35,7 @@ import com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini.GeminiConnec
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini.GeminiUiState
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.OpenClawConnectionState
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.openclaw.ToolCallStatus
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 
 @Composable
 fun GeminiOverlay(
@@ -86,7 +87,7 @@ fun GeminiStatusBar(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         StatusPill(
-            label = "AI",
+            label = tr("IA", "AI"),
             color = when (connectionState) {
                 is GeminiConnectionState.Ready -> Color(0xFF4CAF50)
                 is GeminiConnectionState.Connecting,
@@ -239,6 +240,6 @@ fun SpeakingIndicator(modifier: Modifier = Modifier) {
             )
         }
         Spacer(modifier = Modifier.width(6.dp))
-        Text(text = "Speaking", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+        Text(text = tr("Falando", "Speaking"), color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
     }
 }

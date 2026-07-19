@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 
 // Every spoken-phrase trigger in the app in one place: the AI wake word, the OpenClaw wake word,
 // the AI stop phrase, and the camera/recording start-stop phrases.
@@ -61,10 +62,10 @@ fun WakeWordSettingsScreen(
 
     Column(modifier = modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("Wake Words & Voice Control") },
+            title = { Text(tr("Palavras de Ativação & Controle por Voz", "Wake Words & Voice Control")) },
             navigationIcon = {
                 IconButton(onClick = { save(); onBack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Voltar", "Back"))
                 }
             },
         )
@@ -78,8 +79,11 @@ fun WakeWordSettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             SwitchRow(
-                title = "Wake Word",
-                description = "Say the phrase below to start the AI hands-free (only while this screen is open).",
+                title = tr("Palavra de Ativação", "Wake Word"),
+                description = tr(
+                    "Diga a frase abaixo para iniciar a IA de mãos livres (só enquanto esta tela estiver aberta).",
+                    "Say the phrase below to start the AI hands-free (only while this screen is open).",
+                ),
                 checked = wakeWordEnabled,
                 onCheckedChange = { wakeWordEnabled = it },
             )
@@ -87,14 +91,17 @@ fun WakeWordSettingsScreen(
                 MonoTextField(
                     value = wakePhrase,
                     onValueChange = { wakePhrase = it },
-                    label = "Wake Phrase",
+                    label = tr("Frase de Ativação", "Wake Phrase"),
                     placeholder = SettingsManager.DEFAULT_WAKE_PHRASE,
                 )
             }
 
             SwitchRow(
-                title = "OpenClaw Wake Word",
-                description = "Say the phrase below to turn OpenClaw on hands-free, separate from the AI wake word.",
+                title = tr("Palavra de Ativação do OpenClaw", "OpenClaw Wake Word"),
+                description = tr(
+                    "Diga a frase abaixo para ligar o OpenClaw de mãos livres, separada da palavra de ativação da IA.",
+                    "Say the phrase below to turn OpenClaw on hands-free, separate from the AI wake word.",
+                ),
                 checked = openClawWakeWordEnabled,
                 onCheckedChange = { openClawWakeWordEnabled = it },
             )
@@ -102,14 +109,17 @@ fun WakeWordSettingsScreen(
                 MonoTextField(
                     value = openClawWakePhrase,
                     onValueChange = { openClawWakePhrase = it },
-                    label = "OpenClaw Wake Phrase",
+                    label = tr("Frase de Ativação do OpenClaw", "OpenClaw Wake Phrase"),
                     placeholder = SettingsManager.DEFAULT_OPENCLAW_WAKE_PHRASE,
                 )
             }
 
             SwitchRow(
-                title = "AI Stop Phrase",
-                description = "Say the phrase below during a conversation to end it hands-free -- useful with Continuous Conversation, which never closes on its own.",
+                title = tr("Frase de Encerrar IA", "AI Stop Phrase"),
+                description = tr(
+                    "Diga a frase abaixo durante uma conversa para encerrá-la de mãos livres -- útil com a Conversa Contínua, que nunca se encerra sozinha.",
+                    "Say the phrase below during a conversation to end it hands-free -- useful with Continuous Conversation, which never closes on its own.",
+                ),
                 checked = aiStopPhraseEnabled,
                 onCheckedChange = { aiStopPhraseEnabled = it },
             )
@@ -117,14 +127,17 @@ fun WakeWordSettingsScreen(
                 MonoTextField(
                     value = aiStopPhrase,
                     onValueChange = { aiStopPhrase = it },
-                    label = "Stop Phrase",
+                    label = tr("Frase de Encerrar", "Stop Phrase"),
                     placeholder = SettingsManager.DEFAULT_AI_STOP_PHRASE,
                 )
             }
 
             SwitchRow(
-                title = "Camera Wake Word",
-                description = "Say these phrases to start/stop the camera hands-free (only while the AI is off).",
+                title = tr("Palavra de Ativação da Câmera", "Camera Wake Word"),
+                description = tr(
+                    "Diga estas frases para ligar/desligar a câmera de mãos livres (só enquanto a IA estiver desligada).",
+                    "Say these phrases to start/stop the camera hands-free (only while the AI is off).",
+                ),
                 checked = cameraWakeWordEnabled,
                 onCheckedChange = { cameraWakeWordEnabled = it },
             )
@@ -132,20 +145,23 @@ fun WakeWordSettingsScreen(
                 MonoTextField(
                     value = cameraStartPhrase,
                     onValueChange = { cameraStartPhrase = it },
-                    label = "Camera Start Phrase",
+                    label = tr("Frase de Ligar Câmera", "Camera Start Phrase"),
                     placeholder = SettingsManager.DEFAULT_CAMERA_START_PHRASE,
                 )
                 MonoTextField(
                     value = cameraStopPhrase,
                     onValueChange = { cameraStopPhrase = it },
-                    label = "Camera Stop Phrase",
+                    label = tr("Frase de Desligar Câmera", "Camera Stop Phrase"),
                     placeholder = SettingsManager.DEFAULT_CAMERA_STOP_PHRASE,
                 )
             }
 
             SwitchRow(
-                title = "Recording Wake Word",
-                description = "Say these phrases to start/stop saving the camera stream to a video file (only while the AI is off).",
+                title = tr("Palavra de Ativação de Gravação", "Recording Wake Word"),
+                description = tr(
+                    "Diga estas frases para começar/parar de salvar a transmissão da câmera em um arquivo de vídeo (só enquanto a IA estiver desligada).",
+                    "Say these phrases to start/stop saving the camera stream to a video file (only while the AI is off).",
+                ),
                 checked = recordingWakeWordEnabled,
                 onCheckedChange = { recordingWakeWordEnabled = it },
             )
@@ -153,13 +169,13 @@ fun WakeWordSettingsScreen(
                 MonoTextField(
                     value = recordingStartPhrase,
                     onValueChange = { recordingStartPhrase = it },
-                    label = "Recording Start Phrase",
+                    label = tr("Frase de Iniciar Gravação", "Recording Start Phrase"),
                     placeholder = SettingsManager.DEFAULT_RECORDING_START_PHRASE,
                 )
                 MonoTextField(
                     value = recordingStopPhrase,
                     onValueChange = { recordingStopPhrase = it },
-                    label = "Recording Stop Phrase",
+                    label = tr("Frase de Parar Gravação", "Recording Stop Phrase"),
                     placeholder = SettingsManager.DEFAULT_RECORDING_STOP_PHRASE,
                 )
             }

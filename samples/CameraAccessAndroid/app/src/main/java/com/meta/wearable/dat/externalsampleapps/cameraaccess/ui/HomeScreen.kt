@@ -35,10 +35,6 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,14 +42,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.R
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.AppLanguage
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.LocalAppLanguage
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.wearables.WearablesViewModel
 
 @Composable
@@ -65,11 +62,14 @@ fun HomeScreen(
   val activity = LocalActivity.current
   val context = LocalContext.current
 
-  var appLanguage by remember { mutableStateOf(SettingsManager.appLanguage) }
+  val appLanguage = LocalAppLanguage.current
+  // Hoisted out of the onClick lambda below -- tr() is @Composable and can't be called from a
+  // plain event-handler lambda, only from composable scope.
+  val activityNotAvailableMessage = tr("Activity não disponível", "Activity not available")
 
   Box(modifier = modifier.fillMaxSize()) {
-    // Toggles the wake-word recognizer's language (and default voice-trigger phrases) between
-    // Portuguese and English, so an English speaker can use the app hands-free too.
+    // Toggles the wake-word recognizer's language, the default voice-trigger phrases, and every
+    // translated string in the app (via LocalAppLanguage/tr()) between Portuguese and English.
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier =
@@ -78,12 +78,11 @@ fun HomeScreen(
                 .padding(8.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .clickable {
-                  appLanguage = if (appLanguage == AppLanguage.PORTUGUESE) {
+                  SettingsManager.appLanguage = if (appLanguage == AppLanguage.PORTUGUESE) {
                     AppLanguage.ENGLISH
                   } else {
                     AppLanguage.PORTUGUESE
                   }
-                  SettingsManager.appLanguage = appLanguage
                 }
                 .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {
@@ -105,7 +104,7 @@ fun HomeScreen(
       IconButton(onClick = { viewModel.showHistory() }) {
         Icon(
             imageVector = Icons.Default.History,
-            contentDescription = "Conversation History",
+            contentDescription = tr("Histórico de Conversas", "Conversation History"),
             tint = Color.Gray,
             modifier = Modifier.size(28.dp),
         )
@@ -113,7 +112,7 @@ fun HomeScreen(
       IconButton(onClick = { viewModel.showSettings() }) {
         Icon(
             imageVector = Icons.Default.Settings,
-            contentDescription = "Settings",
+            contentDescription = tr("Configurações", "Settings"),
             tint = Color.Gray,
             modifier = Modifier.size(28.dp),
         )
@@ -137,7 +136,7 @@ fun HomeScreen(
       ) {
         Icon(
             painter = painterResource(id = R.drawable.camera_access_icon),
-            contentDescription = stringResource(R.string.camera_access_icon_description),
+            contentDescription = tr("Ícone do Camera Access", "Camera Access icon"),
             tint = AppColor.DeepBlue,
             modifier = Modifier.size(80.dp * LocalDensity.current.density),
         )
@@ -147,18 +146,27 @@ fun HomeScreen(
         ) {
           TipItem(
               iconResId = R.drawable.smart_glasses_icon,
-              title = stringResource(R.string.home_tip_video_title),
-              text = stringResource(R.string.home_tip_video),
+              title = tr("Captura de Vídeo", "Video Capture"),
+              text = tr(
+                  "Grave vídeos direto dos seus óculos, do seu ponto de vista.",
+                  "Record videos directly from your glasses, from your point of view.",
+              ),
           )
           TipItem(
               iconResId = R.drawable.sound_icon,
-              title = stringResource(R.string.home_tip_audio_title),
-              text = stringResource(R.string.home_tip_audio),
+              title = tr("Áudio de Ouvido Aberto", "Open-Ear Audio"),
+              text = tr(
+                  "Ouça notificações mantendo os ouvidos abertos para o mundo ao seu redor.",
+                  "Hear notifications while keeping your ears open to the world around you.",
+              ),
           )
           TipItem(
               iconResId = R.drawable.walking_icon,
-              title = stringResource(R.string.home_tip_hands_title),
-              text = stringResource(R.string.home_tip_hands),
+              title = tr("Aproveite em Movimento", "Enjoy On-the-Go"),
+              text = tr(
+                  "Fique de mãos livres enquanto segue seu dia. Mova-se livremente, continue conectado.",
+                  "Stay hands-free while you move through your day. Move freely, stay connected.",
+              ),
           )
         }
       }
@@ -169,22 +177,25 @@ fun HomeScreen(
       ) {
         // App Registration Button
         Text(
-            text = stringResource(R.string.home_redirect_message),
+            text = tr(
+                "Você será redirecionado para o app Meta AI para confirmar sua conexão.",
+                "You'll be redirected to the Meta AI app to confirm your connection.",
+            ),
             color = Color.Gray,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 24.dp),
         )
         SwitchButton(
-            label = stringResource(R.string.register_button_title),
+            label = tr("Conectar meus óculos", "Connect my glasses"),
             onClick = {
               activity?.let { viewModel.startRegistration(it) }
-                  ?: Toast.makeText(context, "Activity not available", Toast.LENGTH_SHORT).show()
+                  ?: Toast.makeText(context, activityNotAvailableMessage, Toast.LENGTH_SHORT).show()
             },
         )
 
         // Phone mode button
         SwitchButton(
-            label = "Start on Phone",
+            label = tr("Iniciar no Celular", "Start on Phone"),
             onClick = { viewModel.navigateToPhoneMode() },
         )
       }
@@ -202,7 +213,7 @@ private fun TipItem(
   Row(modifier = modifier.fillMaxWidth()) {
     Icon(
         painter = painterResource(id = iconResId),
-        contentDescription = "Tip icon",
+        contentDescription = tr("Ícone de dica", "Tip icon"),
         modifier = Modifier.padding(start = 4.dp, top = 4.dp).width(24.dp),
     )
     Spacer(modifier = Modifier.width(12.dp))

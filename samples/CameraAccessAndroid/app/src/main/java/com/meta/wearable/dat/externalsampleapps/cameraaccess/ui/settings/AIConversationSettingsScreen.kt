@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini.ConversationHistoryStore
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.AIProvider
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 
 // Provider, API key, system prompt, speech behavior, and how long the AI remembers past
 // conversations -- everything about how the AI itself thinks and talks.
@@ -81,10 +82,10 @@ fun AIConversationSettingsScreen(
 
     Column(modifier = modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("AI & Conversation") },
+            title = { Text(tr("IA & Conversa", "AI & Conversation")) },
             navigationIcon = {
                 IconButton(onClick = { save(); onBack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Voltar", "Back"))
                 }
             },
         )
@@ -97,7 +98,7 @@ fun AIConversationSettingsScreen(
                 .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            SectionHeader("AI Provider")
+            SectionHeader(tr("Provedor de IA", "AI Provider"))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -118,42 +119,48 @@ fun AIConversationSettingsScreen(
             }
 
             if (aiProvider == AIProvider.GEMINI) {
-                SectionHeader("Gemini API")
+                SectionHeader(tr("API do Gemini", "Gemini API"))
                 MonoTextField(
                     value = geminiAPIKey,
                     onValueChange = { geminiAPIKey = it },
-                    label = "API Key",
-                    placeholder = "Enter Gemini API key",
+                    label = tr("Chave de API", "API Key"),
+                    placeholder = tr("Insira a chave de API do Gemini", "Enter Gemini API key"),
                 )
             } else {
-                SectionHeader("OpenAI API")
+                SectionHeader(tr("API da OpenAI", "OpenAI API"))
                 MonoTextField(
                     value = openaiAPIKey,
                     onValueChange = { openaiAPIKey = it },
-                    label = "API Key",
-                    placeholder = "Enter OpenAI API key",
+                    label = tr("Chave de API", "API Key"),
+                    placeholder = tr("Insira a chave de API da OpenAI", "Enter OpenAI API key"),
                 )
             }
 
-            SectionHeader("System Prompt")
+            SectionHeader(tr("Prompt do Sistema", "System Prompt"))
             OutlinedTextField(
                 value = systemPrompt,
                 onValueChange = { systemPrompt = it },
-                label = { Text("System prompt") },
+                label = { Text(tr("Prompt do sistema", "System prompt")) },
                 modifier = Modifier.fillMaxWidth().height(200.dp),
                 textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
             )
 
-            SectionHeader("Conversation Behavior")
+            SectionHeader(tr("Comportamento da Conversa", "Conversation Behavior"))
             SwitchRow(
-                title = "Continuous Conversation",
-                description = "Keep listening for a few seconds after each reply, without repeating the wake phrase.",
+                title = tr("Conversa Contínua", "Continuous Conversation"),
+                description = tr(
+                    "Continua ouvindo por alguns segundos após cada resposta, sem repetir a palavra de ativação.",
+                    "Keep listening for a few seconds after each reply, without repeating the wake phrase.",
+                ),
                 checked = continuousConversationEnabled,
                 onCheckedChange = { continuousConversationEnabled = it },
             )
             SwitchRow(
-                title = "Remember Conversations",
-                description = "Keep conversation history on this phone across restarts, so the AI remembers past conversations.",
+                title = tr("Lembrar Conversas", "Remember Conversations"),
+                description = tr(
+                    "Mantém o histórico de conversas neste celular entre reinicializações, para a IA lembrar de conversas passadas.",
+                    "Keep conversation history on this phone across restarts, so the AI remembers past conversations.",
+                ),
                 checked = conversationHistoryEnabled,
                 onCheckedChange = { conversationHistoryEnabled = it },
             )
@@ -161,29 +168,35 @@ fun AIConversationSettingsScreen(
                 MonoTextField(
                     value = conversationHistoryRetentionDays,
                     onValueChange = { conversationHistoryRetentionDays = it },
-                    label = "Keep History For (days, -1 = forever)",
+                    label = tr("Manter Histórico Por (dias, -1 = para sempre)", "Keep History For (days, -1 = forever)"),
                     placeholder = SettingsManager.DEFAULT_HISTORY_RETENTION_DAYS.toString(),
                 )
             }
 
-            SectionHeader("Microphone")
+            SectionHeader(tr("Microfone", "Microphone"))
             SwitchRow(
-                title = "Use Glasses Mic",
-                description = "Capture voice through the glasses' Bluetooth mic instead of the phone's, for better pickup with the phone in a pocket. Pauses any Bluetooth music on the phone while listening (resumes automatically after).",
+                title = tr("Usar Mic dos Óculos", "Use Glasses Mic"),
+                description = tr(
+                    "Captura a voz pelo mic Bluetooth dos óculos em vez do celular, para melhor captação com o celular no bolso. Pausa qualquer música Bluetooth no celular enquanto ouve (retoma automaticamente depois).",
+                    "Capture voice through the glasses' Bluetooth mic instead of the phone's, for better pickup with the phone in a pocket. Pauses any Bluetooth music on the phone while listening (resumes automatically after).",
+                ),
                 checked = useGlassesMic,
                 onCheckedChange = { useGlassesMic = it },
             )
 
-            SectionHeader("AI Speech")
+            SectionHeader(tr("Fala da IA", "AI Speech"))
             LabeledSlider(
-                label = "Speech Speed",
+                label = tr("Velocidade da Fala", "Speech Speed"),
                 value = aiSpeechSpeed,
                 onValueChange = { aiSpeechSpeed = it },
                 valueRange = 0.75f..2f,
             )
             SwitchRow(
-                title = "Use Phone Speaker",
-                description = "Play AI responses through the phone's loudspeaker instead of the earpiece/glasses, so people nearby can hear too.",
+                title = tr("Usar Alto-falante do Celular", "Use Phone Speaker"),
+                description = tr(
+                    "Reproduz as respostas da IA pelo alto-falante do celular em vez do fone/óculos, para pessoas por perto também ouvirem.",
+                    "Play AI responses through the phone's loudspeaker instead of the earpiece/glasses, so people nearby can hear too.",
+                ),
                 checked = useSpeakerForAiVoice,
                 onCheckedChange = { useSpeakerForAiVoice = it },
             )

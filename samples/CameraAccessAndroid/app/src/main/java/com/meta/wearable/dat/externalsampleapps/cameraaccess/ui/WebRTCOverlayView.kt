@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.webrtc.WebRTCConnectionState
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.webrtc.WebRTCUiState
 import kotlinx.coroutines.delay
@@ -47,12 +48,12 @@ fun WebRTCOverlay(
         // Status pill
         StatusPill(
             label = when (uiState.connectionState) {
-                is WebRTCConnectionState.Connected -> "Live"
-                is WebRTCConnectionState.Connecting -> "Connecting..."
-                is WebRTCConnectionState.WaitingForPeer -> "Waiting..."
-                is WebRTCConnectionState.Backgrounded -> "Paused"
-                is WebRTCConnectionState.Error -> "Error"
-                is WebRTCConnectionState.Disconnected -> "Off"
+                is WebRTCConnectionState.Connected -> tr("Ao Vivo", "Live")
+                is WebRTCConnectionState.Connecting -> tr("Conectando...", "Connecting...")
+                is WebRTCConnectionState.WaitingForPeer -> tr("Aguardando...", "Waiting...")
+                is WebRTCConnectionState.Backgrounded -> tr("Pausado", "Paused")
+                is WebRTCConnectionState.Error -> tr("Erro", "Error")
+                is WebRTCConnectionState.Disconnected -> tr("Desligado", "Off")
             },
             color = when (uiState.connectionState) {
                 is WebRTCConnectionState.Connected -> Color(0xFF4CAF50)
@@ -72,7 +73,7 @@ fun WebRTCOverlay(
         // Mic status
         if (uiState.connectionState is WebRTCConnectionState.Connected) {
             StatusPill(
-                label = if (uiState.isMuted) "Muted" else "Mic On",
+                label = if (uiState.isMuted) tr("Mudo", "Muted") else tr("Mic Ligado", "Mic On"),
                 color = if (uiState.isMuted) Color(0xFFF44336) else Color(0xFF4CAF50),
             )
         }
@@ -87,13 +88,16 @@ fun RoomCodePill(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var showCopied by remember { mutableStateOf(false) }
+    // Hoisted out of the clickable lambda below -- tr() is @Composable and can't be called from
+    // a plain event-handler lambda, only from composable scope.
+    val roomCodeLabel = tr("Código da Sala", "Room Code")
 
     Row(
         modifier = modifier
             .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
             .clickable {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(ClipData.newPlainText("Room Code", code))
+                clipboard.setPrimaryClip(ClipData.newPlainText(roomCodeLabel, code))
                 showCopied = true
                 scope.launch {
                     delay(1500)
@@ -105,7 +109,7 @@ fun RoomCodePill(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            text = if (showCopied) "Copied" else code,
+            text = if (showCopied) tr("Copiado", "Copied") else code,
             color = if (showCopied) Color(0xFF4CAF50) else Color.White,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,

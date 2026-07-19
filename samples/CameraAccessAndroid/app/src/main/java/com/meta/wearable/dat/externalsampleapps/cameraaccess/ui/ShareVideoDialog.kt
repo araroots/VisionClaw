@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 import java.io.File
 
 // Mirrors SharePhotoDialog.kt, but text-only -- there is no readily-available thumbnail for a
@@ -30,10 +31,10 @@ fun ShareVideoDialog(file: File, onDismiss: () -> Unit, onShare: (File) -> Unit)
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(text = "Recording saved")
+                Text(text = tr("Gravação salva", "Recording saved"))
 
                 Button(onClick = { onShare(file) }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Share")
+                    Text(tr("Compartilhar", "Share"))
                 }
             }
         }

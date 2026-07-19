@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini.ConversationHistoryStore
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini.ConversationSessionSummary
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -74,10 +75,10 @@ fun ConversationHistoryScreen(
 
     Column(modifier = modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("Conversation History") },
+            title = { Text(tr("Histórico de Conversas", "Conversation History")) },
             navigationIcon = {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Voltar", "Back"))
                 }
             },
         )
@@ -85,7 +86,7 @@ fun ConversationHistoryScreen(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("Search conversations") },
+            placeholder = { Text(tr("Buscar conversas", "Search conversations")) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -94,7 +95,7 @@ fun ConversationHistoryScreen(
         if (sessions.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    if (searchQuery.isBlank()) "No conversations yet" else "No matches",
+                    if (searchQuery.isBlank()) tr("Nenhuma conversa ainda", "No conversations yet") else tr("Nenhum resultado", "No matches"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -118,7 +119,7 @@ private fun SessionRow(session: ConversationSessionSummary, onClick: () -> Unit)
     ) {
         Text(session.title, style = MaterialTheme.typography.bodyLarge)
         Text(
-            "${formatSessionTimestamp(session.lastUpdatedAtMs)} · ${session.turnCount} messages",
+            "${formatSessionTimestamp(session.lastUpdatedAtMs)} · ${session.turnCount} ${tr("mensagens", "messages")}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

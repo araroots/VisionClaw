@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini.ConversationHistoryStore
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini.ConversationTurn
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini.ConversationTurnEntry
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 
 // Read-only transcript of one saved conversation, with delete.
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,22 +54,27 @@ fun ConversationSessionDetailScreen(
 
     Column(modifier = modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text(session?.title?.ifEmpty { "Untitled conversation" } ?: "Conversation") },
+            title = {
+                Text(
+                    session?.title?.ifEmpty { tr("Conversa sem título", "Untitled conversation") }
+                        ?: tr("Conversa", "Conversation"),
+                )
+            },
             navigationIcon = {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Voltar", "Back"))
                 }
             },
             actions = {
                 IconButton(onClick = { showDeleteDialog = true }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete conversation")
+                    Icon(Icons.Default.Delete, contentDescription = tr("Excluir conversa", "Delete conversation"))
                 }
             },
         )
 
         if (session == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Conversation not found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(tr("Conversa não encontrada", "Conversation not found"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             LazyColumn(
@@ -86,20 +92,20 @@ fun ConversationSessionDetailScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Conversation") },
-            text = { Text("This cannot be undone.") },
+            title = { Text(tr("Excluir Conversa", "Delete Conversation")) },
+            text = { Text(tr("Isso não pode ser desfeito.", "This cannot be undone.")) },
             confirmButton = {
                 TextButton(onClick = {
                     historyStore.deleteSession(sessionId)
                     showDeleteDialog = false
                     onDeleted()
                 }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(tr("Excluir", "Delete"), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(tr("Cancelar", "Cancel"))
                 }
             },
         )

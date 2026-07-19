@@ -29,6 +29,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.meta.wearable.dat.camera.types.VideoQuality
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 
 // Streaming quality/frame rate, the WebRTC transport used to view the feed remotely, and live
 // image adjustments.
@@ -58,10 +59,10 @@ fun CameraVideoSettingsScreen(
 
     Column(modifier = modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("Camera & Video") },
+            title = { Text(tr("Câmera & Vídeo", "Camera & Video")) },
             navigationIcon = {
                 IconButton(onClick = { save(); onBack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Voltar", "Back"))
                 }
             },
         )
@@ -74,10 +75,10 @@ fun CameraVideoSettingsScreen(
                 .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            SectionHeader("Video")
+            SectionHeader(tr("Vídeo", "Video"))
             SwitchRow(
-                title = "Video Streaming",
-                description = "Disable to save battery. Audio remains active.",
+                title = tr("Transmissão de Vídeo", "Video Streaming"),
+                description = tr("Desative para economizar bateria. O áudio continua ativo.", "Disable to save battery. Audio remains active."),
                 checked = videoStreamingEnabled,
                 onCheckedChange = { videoStreamingEnabled = it },
             )
@@ -102,7 +103,7 @@ fun CameraVideoSettingsScreen(
             MonoTextField(
                 value = videoFrameRate,
                 onValueChange = { videoFrameRate = it },
-                label = "Frame Rate (fps)",
+                label = tr("Taxa de Quadros (fps)", "Frame Rate (fps)"),
                 placeholder = SettingsManager.DEFAULT_FRAME_RATE.toString(),
                 keyboardType = KeyboardType.Number,
             )
@@ -111,26 +112,26 @@ fun CameraVideoSettingsScreen(
             MonoTextField(
                 value = webrtcSignalingURL,
                 onValueChange = { webrtcSignalingURL = it },
-                label = "Signaling URL",
+                label = tr("URL de Sinalização", "Signaling URL"),
                 placeholder = "wss://your-server.example.com",
                 keyboardType = KeyboardType.Uri,
             )
 
-            SectionHeader("Image")
+            SectionHeader(tr("Imagem", "Image"))
             LabeledSlider(
-                label = "Brightness",
+                label = tr("Brilho", "Brightness"),
                 value = imageBrightness,
                 onValueChange = { imageBrightness = it },
                 valueRange = -1f..1f,
             )
             LabeledSlider(
-                label = "Contrast",
+                label = tr("Contraste", "Contrast"),
                 value = imageContrast,
                 onValueChange = { imageContrast = it },
                 valueRange = 0.5f..2f,
             )
             LabeledSlider(
-                label = "Saturation",
+                label = tr("Saturação", "Saturation"),
                 value = imageSaturation,
                 onValueChange = { imageSaturation = it },
                 valueRange = 0f..2f,

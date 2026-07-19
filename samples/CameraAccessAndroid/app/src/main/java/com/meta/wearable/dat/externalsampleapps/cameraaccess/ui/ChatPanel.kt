@@ -33,6 +33,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini.ConversationTurn
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 
 // Scrollable log of the durable conversation history (voice + typed turns), plus a text field to
 // send new typed messages. Visibility is controlled by the caller, independent of whether the AI
@@ -75,7 +76,7 @@ fun ChatPanel(
                 value = inputText,
                 onValueChange = { inputText = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Type a message...", color = Color.White.copy(alpha = 0.5f)) },
+                placeholder = { Text(tr("Digite uma mensagem...", "Type a message..."), color = Color.White.copy(alpha = 0.5f)) },
                 textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.White.copy(alpha = 0.6f),
@@ -95,7 +96,7 @@ fun ChatPanel(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send",
+                    contentDescription = tr("Enviar", "Send"),
                     tint = Color.White,
                 )
             }

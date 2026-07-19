@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.settings.AIConversationSettingsScreen
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.settings.CameraVideoSettingsScreen
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.settings.NotificationSettingsScreen
@@ -98,10 +99,10 @@ private fun SettingsHub(
 
     Column(modifier = modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("Settings") },
+            title = { Text(tr("Configurações", "Settings")) },
             navigationIcon = {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Voltar", "Back"))
                 }
             },
         )
@@ -113,32 +114,44 @@ private fun SettingsHub(
                 .navigationBarsPadding(),
         ) {
             SettingsCategoryRow(
-                title = "AI & Conversation",
-                description = "Provider, API key, system prompt, memory",
+                title = tr("IA & Conversa", "AI & Conversation"),
+                description = tr(
+                    "Provedor, chave de API, prompt do sistema, memória",
+                    "Provider, API key, system prompt, memory",
+                ),
                 icon = Icons.Default.Psychology,
                 onClick = { onOpenCategory(SettingsRoute.AIConversation) },
             )
             SettingsCategoryRow(
-                title = "Wake Words & Voice Control",
-                description = "Hands-free phrases for the AI, camera, recording",
+                title = tr("Palavras de Ativação & Controle por Voz", "Wake Words & Voice Control"),
+                description = tr(
+                    "Frases de mãos livres para IA, câmera, gravação",
+                    "Hands-free phrases for the AI, camera, recording",
+                ),
                 icon = Icons.Default.RecordVoiceOver,
                 onClick = { onOpenCategory(SettingsRoute.WakeWords) },
             )
             SettingsCategoryRow(
                 title = "OpenClaw",
-                description = "Gateway connection, tokens, agent routing",
+                description = tr(
+                    "Conexão do gateway, tokens, roteamento de agente",
+                    "Gateway connection, tokens, agent routing",
+                ),
                 icon = Icons.Default.Hub,
                 onClick = { onOpenCategory(SettingsRoute.OpenClaw) },
             )
             SettingsCategoryRow(
-                title = "Camera & Video",
-                description = "Quality, frame rate, WebRTC, image adjustments",
+                title = tr("Câmera & Vídeo", "Camera & Video"),
+                description = tr(
+                    "Qualidade, taxa de quadros, WebRTC, ajustes de imagem",
+                    "Quality, frame rate, WebRTC, image adjustments",
+                ),
                 icon = Icons.Default.Videocam,
                 onClick = { onOpenCategory(SettingsRoute.CameraVideo) },
             )
             SettingsCategoryRow(
-                title = "Notifications",
-                description = "Proactive updates from OpenClaw",
+                title = tr("Notificações", "Notifications"),
+                description = tr("Atualizações proativas do OpenClaw", "Proactive updates from OpenClaw"),
                 icon = Icons.Default.Notifications,
                 onClick = { onOpenCategory(SettingsRoute.Notifications) },
             )
@@ -148,7 +161,7 @@ private fun SettingsHub(
                 onClick = { showResetDialog = true },
                 modifier = Modifier.padding(horizontal = 16.dp),
             ) {
-                Text("Reset to Defaults", color = Color.Red)
+                Text(tr("Restaurar Padrões", "Reset to Defaults"), color = Color.Red)
             }
             Spacer(modifier = Modifier.height(32.dp))
         }
@@ -157,19 +170,26 @@ private fun SettingsHub(
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
-            title = { Text("Reset Settings") },
-            text = { Text("This will reset all settings to the values built into the app.") },
+            title = { Text(tr("Restaurar Configurações", "Reset Settings")) },
+            text = {
+                Text(
+                    tr(
+                        "Isso vai restaurar todas as configurações para os valores originais do app.",
+                        "This will reset all settings to the values built into the app.",
+                    )
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     SettingsManager.resetAll()
                     showResetDialog = false
                 }) {
-                    Text("Reset", color = Color.Red)
+                    Text(tr("Restaurar", "Reset"), color = Color.Red)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showResetDialog = false }) {
-                    Text("Cancel")
+                    Text(tr("Cancelar", "Cancel"))
                 }
             },
         )

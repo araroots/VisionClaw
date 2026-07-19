@@ -30,14 +30,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Snackbar
@@ -57,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.meta.wearable.dat.core.types.Permission
 import com.meta.wearable.dat.core.types.PermissionStatus
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.BuildConfig
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.history.ConversationHistoryScreen
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.wearables.WearablesViewModel
 
@@ -70,6 +72,11 @@ fun CameraAccessScaffold(
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val snackbarHostState = remember { SnackbarHostState() }
   val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+  val isHomeVisible =
+      !uiState.isHistoryVisible &&
+          !uiState.isSettingsVisible &&
+          !uiState.isStreaming &&
+          !uiState.isRegistered
 
   // Observe camera permission errors and show snackbar
   LaunchedEffect(uiState.recentError) {
@@ -121,7 +128,7 @@ fun CameraAccessScaffold(
               Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.Error,
-                    contentDescription = "Camera Access error",
+                    contentDescription = tr("Erro do Camera Access", "Camera Access error"),
                     tint = MaterialTheme.colorScheme.error,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -131,22 +138,27 @@ fun CameraAccessScaffold(
           },
       )
 
-      if (BuildConfig.DEBUG) {
-        FloatingActionButton(
+      if (BuildConfig.DEBUG && isHomeVisible) {
+        IconButton(
             onClick = { viewModel.showDebugMenu() },
-            modifier = Modifier.align(Alignment.CenterEnd),
+            modifier = Modifier.align(Alignment.CenterEnd).size(48.dp),
         ) {
-          Icon(Icons.Default.BugReport, contentDescription = "Debug Menu")
+          Icon(
+              imageVector = Icons.Default.BugReport,
+              contentDescription = tr("Menu de Depuração", "Debug Menu"),
+              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.size(24.dp),
+          )
         }
+      }
 
-        if (uiState.isDebugMenuVisible) {
-          ModalBottomSheet(
-              onDismissRequest = { viewModel.hideDebugMenu() },
-              sheetState = bottomSheetState,
-              modifier = Modifier.fillMaxSize(),
-          ) {
-            MockDeviceKitScreen(modifier = Modifier.fillMaxSize())
-          }
+      if (BuildConfig.DEBUG && uiState.isDebugMenuVisible) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.hideDebugMenu() },
+            sheetState = bottomSheetState,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+          MockDeviceKitScreen(modifier = Modifier.fillMaxSize())
         }
       }
     }

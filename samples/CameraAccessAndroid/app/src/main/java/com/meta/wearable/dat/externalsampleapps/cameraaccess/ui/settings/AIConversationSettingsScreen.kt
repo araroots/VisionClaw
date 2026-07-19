@@ -49,6 +49,8 @@ fun AIConversationSettingsScreen(
     var systemPrompt by remember { mutableStateOf(SettingsManager.geminiSystemPrompt) }
     var continuousConversationEnabled by remember { mutableStateOf(SettingsManager.continuousConversationEnabled) }
     var aiSpeechSpeed by remember { mutableStateOf(SettingsManager.aiSpeechSpeed) }
+    var useGlassesMic by remember { mutableStateOf(SettingsManager.useGlassesMic) }
+    var useSpeakerForAiVoice by remember { mutableStateOf(SettingsManager.useSpeakerForAiVoice) }
     var conversationHistoryEnabled by remember { mutableStateOf(SettingsManager.conversationHistoryRetentionDays != 0) }
     var conversationHistoryRetentionDays by remember {
         mutableStateOf(
@@ -64,6 +66,8 @@ fun AIConversationSettingsScreen(
         SettingsManager.geminiSystemPrompt = systemPrompt.trim()
         SettingsManager.continuousConversationEnabled = continuousConversationEnabled
         SettingsManager.aiSpeechSpeed = aiSpeechSpeed
+        SettingsManager.useGlassesMic = useGlassesMic
+        SettingsManager.useSpeakerForAiVoice = useSpeakerForAiVoice
         val newRetentionDays = if (conversationHistoryEnabled) {
             conversationHistoryRetentionDays.trim().toIntOrNull() ?: SettingsManager.DEFAULT_HISTORY_RETENTION_DAYS
         } else {
@@ -162,12 +166,26 @@ fun AIConversationSettingsScreen(
                 )
             }
 
+            SectionHeader("Microphone")
+            SwitchRow(
+                title = "Use Glasses Mic",
+                description = "Capture voice through the glasses' Bluetooth mic instead of the phone's, for better pickup with the phone in a pocket. Pauses any Bluetooth music on the phone while listening (resumes automatically after).",
+                checked = useGlassesMic,
+                onCheckedChange = { useGlassesMic = it },
+            )
+
             SectionHeader("AI Speech")
             LabeledSlider(
                 label = "Speech Speed",
                 value = aiSpeechSpeed,
                 onValueChange = { aiSpeechSpeed = it },
                 valueRange = 0.75f..2f,
+            )
+            SwitchRow(
+                title = "Use Phone Speaker",
+                description = "Play AI responses through the phone's loudspeaker instead of the earpiece/glasses, so people nearby can hear too.",
+                checked = useSpeakerForAiVoice,
+                onCheckedChange = { useSpeakerForAiVoice = it },
             )
         }
     }

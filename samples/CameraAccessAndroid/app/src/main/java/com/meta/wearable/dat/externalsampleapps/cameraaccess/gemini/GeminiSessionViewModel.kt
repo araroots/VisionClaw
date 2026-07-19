@@ -78,7 +78,7 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
     private var activeService: RealtimeAIService? = null
     private val openClawBridge = OpenClawBridge()
     private var toolCallRouter: ToolCallRouter? = null
-    private val audioManager = AudioManager()
+    private val audioManager = AudioManager(application)
     private val eventClient = OpenClawEventClient()
     private var lastVideoFrameTime: Long = 0
     private var stateObservationJob: Job? = null

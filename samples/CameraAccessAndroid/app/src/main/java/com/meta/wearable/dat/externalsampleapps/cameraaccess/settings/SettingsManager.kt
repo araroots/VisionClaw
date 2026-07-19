@@ -144,6 +144,22 @@ object SettingsManager {
         get() = prefs.getFloat("aiSpeechSpeed", 1f)
         set(value) = prefs.edit().putFloat("aiSpeechSpeed", value).apply()
 
+    // Routes mic capture through the glasses' Bluetooth SCO mic instead of the phone's own when
+    // available. Better directionality/less ambient noise, at the cost of pausing any Bluetooth
+    // media playback on the phone for as long as the AI is listening (SCO and A2DP cannot be
+    // active on the same link). Defaults on since the glasses mic is usually worn right at the
+    // mouth; a user who prefers uninterrupted phone music can turn it off.
+    var useGlassesMic: Boolean
+        get() = prefs.getBoolean("useGlassesMic", true)
+        set(value) = prefs.edit().putBoolean("useGlassesMic", value).apply()
+
+    // Plays AI responses through the phone's built-in loudspeaker instead of the earpiece/glasses,
+    // so people nearby can hear too. Independent of useGlassesMic -- output routing is separate
+    // from input routing.
+    var useSpeakerForAiVoice: Boolean
+        get() = prefs.getBoolean("useSpeakerForAiVoice", false)
+        set(value) = prefs.edit().putBoolean("useSpeakerForAiVoice", value).apply()
+
     var videoQuality: VideoQuality
         get() = try {
             VideoQuality.valueOf(prefs.getString("videoQuality", null) ?: VideoQuality.MEDIUM.name)

@@ -57,13 +57,13 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
     // by SettingsManager.conversationHistoryRetentionDays.
     private val historyStore = ConversationHistoryStore(application)
     private val _conversationHistory = MutableStateFlow(
-        historyStore.load(SettingsManager.conversationHistoryRetentionDays).takeLast(MAX_HISTORY_TURNS * 2)
+        historyStore.recentTurnsForSeed(SettingsManager.conversationHistoryRetentionDays, MAX_HISTORY_TURNS * 2)
     )
     val conversationHistory: StateFlow<List<ConversationTurn>> = _conversationHistory.asStateFlow()
 
     private fun appendTurn(turn: ConversationTurn) {
         _conversationHistory.value = (_conversationHistory.value + turn).takeLast(MAX_HISTORY_TURNS * 2)
-        historyStore.append(turn, SettingsManager.conversationHistoryRetentionDays)
+        historyStore.appendTurn(turn, SettingsManager.conversationHistoryRetentionDays)
     }
 
     // Set by sendChatMessage() when it has to cold-start the session first; flushed once the

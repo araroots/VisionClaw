@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -56,8 +58,26 @@ fun HomeScreen(
   val context = LocalContext.current
 
   Box(modifier = modifier.fillMaxSize()) {
-    // Settings gear (top-right)
-    Box(modifier = Modifier.align(Alignment.TopEnd).systemBarsPadding().padding(8.dp)) {
+    Text(
+        text = "🇧🇷",
+        fontSize = 28.sp,
+        modifier =
+            Modifier.align(Alignment.TopCenter)
+                .systemBarsPadding()
+                .padding(top = 12.dp)
+                .alpha(0.85f),
+    )
+
+    // Settings gear + history (top-right)
+    Row(modifier = Modifier.align(Alignment.TopEnd).systemBarsPadding().padding(8.dp)) {
+      IconButton(onClick = { viewModel.showHistory() }) {
+        Icon(
+            imageVector = Icons.Default.History,
+            contentDescription = "Conversation History",
+            tint = Color.Gray,
+            modifier = Modifier.size(28.dp),
+        )
+      }
       IconButton(onClick = { viewModel.showSettings() }) {
         Icon(
             imageVector = Icons.Default.Settings,

@@ -170,6 +170,14 @@ class WearablesViewModel(application: Application) : AndroidViewModel(applicatio
     _uiState.update { it.copy(isSettingsVisible = false) }
   }
 
+  fun showHistory() {
+    _uiState.update { it.copy(isHistoryVisible = true) }
+  }
+
+  fun hideHistory() {
+    _uiState.update { it.copy(isHistoryVisible = false) }
+  }
+
   fun showDebugMenu() {
     _uiState.update { it.copy(isDebugMenuVisible = true) }
   }

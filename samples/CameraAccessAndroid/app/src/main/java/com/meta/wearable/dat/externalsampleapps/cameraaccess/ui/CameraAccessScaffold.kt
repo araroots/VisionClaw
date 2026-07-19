@@ -57,6 +57,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.meta.wearable.dat.core.types.Permission
 import com.meta.wearable.dat.core.types.PermissionStatus
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.BuildConfig
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.history.ConversationHistoryScreen
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.wearables.WearablesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,6 +82,10 @@ fun CameraAccessScaffold(
   Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
     Box(modifier = Modifier.fillMaxSize()) {
       when {
+        uiState.isHistoryVisible ->
+            ConversationHistoryScreen(
+                onBack = { viewModel.hideHistory() },
+            )
         uiState.isSettingsVisible ->
             SettingsScreen(
                 onBack = { viewModel.hideSettings() },

@@ -126,7 +126,9 @@ if (!tls) {
 }
 
 // WebSocket signaling server
-const wss = new WebSocketServer({ server: httpServer });
+// maxPayload caps individual message size -- SDP offers/answers and ICE candidates are at most
+// a few KB in practice, so this only ever blocks abuse, not legitimate signaling traffic.
+const wss = new WebSocketServer({ server: httpServer, maxPayload: 64 * 1024 });
 
 function generateRoomCode() {
   // No ambiguous chars (0/O, 1/I/L)
@@ -175,10 +177,35 @@ setInterval(() => {
 wss.on("connection", (ws, req) => {
   let currentRoom = null;
   let role = null; // 'creator' or 'viewer'
-  const clientIP = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  // Trusting X-Forwarded-For here would let a client defeat the rate limiter just by sending a
+  // different fake value on every connection -- this server listens directly (no reverse proxy
+  // in front to have set/sanitized that header), so the real socket address is the only value
+  // that's actually authoritative.
+  const clientIP = req.socket.remoteAddress;
   console.log(`[WS] New connection from ${clientIP}`);
 
+  // Per-connection message flood guard, separate from the create/join/rejoin rate limit above --
+  // this covers the ongoing offer/answer/candidate relay traffic too. Generous enough for a real
+  // ICE gathering burst (typically well under 100 candidates for one peer connection) but closes
+  // out anything sustained past that, since nothing legitimate looks like it.
+  const MSG_FLOOD_WINDOW_MS = 10_000;
+  const MSG_FLOOD_MAX = 100;
+  let msgCount = 0;
+  let msgWindowStart = Date.now();
+
   ws.on("message", (data) => {
+    const now = Date.now();
+    if (now - msgWindowStart > MSG_FLOOD_WINDOW_MS) {
+      msgWindowStart = now;
+      msgCount = 0;
+    }
+    msgCount += 1;
+    if (msgCount > MSG_FLOOD_MAX) {
+      console.log(`[Flood] Closing connection from ${clientIP}, too many messages`);
+      ws.close(1008, "Too many messages");
+      return;
+    }
+
     let msg;
     try {
       msg = JSON.parse(data);
@@ -189,10 +216,21 @@ wss.on("connection", (ws, req) => {
       return;
     }
 
-    if (["create", "join", "rejoin"].includes(msg.type) && isRateLimited(clientIP)) {
-      ws.send(JSON.stringify({ type: "error", message: "Too many attempts, slow down" }));
-      console.log(`[RateLimit] Blocked ${msg.type} from ${clientIP}`);
-      return;
+    if (["create", "join", "rejoin"].includes(msg.type)) {
+      if (isRateLimited(clientIP)) {
+        ws.send(JSON.stringify({ type: "error", message: "Too many attempts, slow down" }));
+        console.log(`[RateLimit] Blocked ${msg.type} from ${clientIP}`);
+        return;
+      }
+      // A connection that already created/joined/rejoined a room can't do it again -- without
+      // this, one socket could create or join an unbounded number of rooms, leaving orphaned
+      // rooms/references behind each time (a room only ever gets cleaned up by its *own*
+      // creator disconnecting or its grace-period timer, neither of which fires for a room this
+      // same connection abandoned by immediately creating another).
+      if (role !== null) {
+        ws.send(JSON.stringify({ type: "error", message: "Already in a room" }));
+        return;
+      }
     }
 
     switch (msg.type) {

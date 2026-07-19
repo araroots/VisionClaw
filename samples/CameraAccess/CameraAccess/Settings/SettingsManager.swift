@@ -20,11 +20,26 @@ final class SettingsManager {
 
   private init() {}
 
+  // Reads a secret from the Keychain, transparently migrating a value left over from before
+  // this field moved out of UserDefaults (and removing it from there once migrated) so an
+  // existing install doesn't appear to have lost its configured key/token after an update.
+  private func keychainValue(_ key: Key, fallback: String) -> String {
+    if let value = KeychainStore.get(for: key.rawValue) {
+      return value
+    }
+    if let legacy = defaults.string(forKey: key.rawValue) {
+      KeychainStore.set(legacy, for: key.rawValue)
+      defaults.removeObject(forKey: key.rawValue)
+      return legacy
+    }
+    return fallback
+  }
+
   // MARK: - Gemini
 
   var geminiAPIKey: String {
-    get { defaults.string(forKey: Key.geminiAPIKey.rawValue) ?? Secrets.geminiAPIKey }
-    set { defaults.set(newValue, forKey: Key.geminiAPIKey.rawValue) }
+    get { keychainValue(.geminiAPIKey, fallback: Secrets.geminiAPIKey) }
+    set { KeychainStore.set(newValue, for: Key.geminiAPIKey.rawValue) }
   }
 
   var geminiSystemPrompt: String {
@@ -48,13 +63,13 @@ final class SettingsManager {
   }
 
   var openClawHookToken: String {
-    get { defaults.string(forKey: Key.openClawHookToken.rawValue) ?? Secrets.openClawHookToken }
-    set { defaults.set(newValue, forKey: Key.openClawHookToken.rawValue) }
+    get { keychainValue(.openClawHookToken, fallback: Secrets.openClawHookToken) }
+    set { KeychainStore.set(newValue, for: Key.openClawHookToken.rawValue) }
   }
 
   var openClawGatewayToken: String {
-    get { defaults.string(forKey: Key.openClawGatewayToken.rawValue) ?? Secrets.openClawGatewayToken }
-    set { defaults.set(newValue, forKey: Key.openClawGatewayToken.rawValue) }
+    get { keychainValue(.openClawGatewayToken, fallback: Secrets.openClawGatewayToken) }
+    set { KeychainStore.set(newValue, for: Key.openClawGatewayToken.rawValue) }
   }
 
   // MARK: - WebRTC
@@ -88,11 +103,13 @@ final class SettingsManager {
   // MARK: - Reset
 
   func resetAll() {
-    for key in [Key.geminiAPIKey, .geminiSystemPrompt, .openClawHost, .openClawPort,
-                .openClawHookToken, .openClawGatewayToken, .webrtcSignalingURL,
+    for key in [Key.geminiSystemPrompt, .openClawHost, .openClawPort, .webrtcSignalingURL,
                 .speakerOutputEnabled, .videoStreamingEnabled,
                 .proactiveNotificationsEnabled] {
       defaults.removeObject(forKey: key.rawValue)
+    }
+    for key in [Key.geminiAPIKey, .openClawHookToken, .openClawGatewayToken] {
+      KeychainStore.remove(for: key.rawValue)
     }
   }
 }

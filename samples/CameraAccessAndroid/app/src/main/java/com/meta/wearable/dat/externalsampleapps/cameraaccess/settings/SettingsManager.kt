@@ -2,6 +2,8 @@ package com.meta.wearable.dat.externalsampleapps.cameraaccess.settings
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.meta.wearable.dat.camera.types.VideoQuality
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.Secrets
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,12 +12,43 @@ import kotlinx.coroutines.flow.asStateFlow
 
 object SettingsManager {
     private const val PREFS_NAME = "visionclaw_settings"
+    private const val SECURE_PREFS_NAME = "visionclaw_secure_settings"
 
     private lateinit var prefs: SharedPreferences
 
+    // Separate, Android Keystore-backed store for the handful of real secrets (API keys, gateway
+    // tokens) -- plain SharedPreferences is just an XML file readable by anything with
+    // filesystem access to the app's data dir (root, a device backup, adb on a debuggable
+    // build), so those don't belong in `prefs` alongside ordinary UI settings.
+    private lateinit var securePrefs: SharedPreferences
+
     fun init(context: Context) {
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        securePrefs = EncryptedSharedPreferences.create(
+            context,
+            SECURE_PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+        )
         _appLanguageFlow.value = readAppLanguage()
+    }
+
+    // Reads a secret from the encrypted store, transparently migrating a value left over from
+    // before this field moved out of plain SharedPreferences (and removing it from there once
+    // migrated) so an existing install doesn't appear to have lost its configured key/token
+    // after an update.
+    private fun secureValue(key: String, fallback: String): String {
+        securePrefs.getString(key, null)?.let { return it }
+        prefs.getString(key, null)?.let { legacy ->
+            securePrefs.edit().putString(key, legacy).apply()
+            prefs.edit().remove(key).apply()
+            return legacy
+        }
+        return fallback
     }
 
     private fun readAppLanguage(): AppLanguage = try {
@@ -49,12 +82,12 @@ object SettingsManager {
         set(value) = prefs.edit().putString("aiProvider", value.name).apply()
 
     var geminiAPIKey: String
-        get() = prefs.getString("geminiAPIKey", null) ?: Secrets.geminiAPIKey
-        set(value) = prefs.edit().putString("geminiAPIKey", value).apply()
+        get() = secureValue("geminiAPIKey", Secrets.geminiAPIKey)
+        set(value) = securePrefs.edit().putString("geminiAPIKey", value).apply()
 
     var openaiAPIKey: String
-        get() = prefs.getString("openaiAPIKey", null) ?: Secrets.openaiAPIKey
-        set(value) = prefs.edit().putString("openaiAPIKey", value).apply()
+        get() = secureValue("openaiAPIKey", Secrets.openaiAPIKey)
+        set(value) = securePrefs.edit().putString("openaiAPIKey", value).apply()
 
     var geminiSystemPrompt: String
         get() = prefs.getString("geminiSystemPrompt", null) ?: DEFAULT_SYSTEM_PROMPT
@@ -72,12 +105,12 @@ object SettingsManager {
         set(value) = prefs.edit().putInt("openClawPort", value).apply()
 
     var openClawHookToken: String
-        get() = prefs.getString("openClawHookToken", null) ?: Secrets.openClawHookToken
-        set(value) = prefs.edit().putString("openClawHookToken", value).apply()
+        get() = secureValue("openClawHookToken", Secrets.openClawHookToken)
+        set(value) = securePrefs.edit().putString("openClawHookToken", value).apply()
 
     var openClawGatewayToken: String
-        get() = prefs.getString("openClawGatewayToken", null) ?: Secrets.openClawGatewayToken
-        set(value) = prefs.edit().putString("openClawGatewayToken", value).apply()
+        get() = secureValue("openClawGatewayToken", Secrets.openClawGatewayToken)
+        set(value) = securePrefs.edit().putString("openClawGatewayToken", value).apply()
 
     // Which OpenClaw agent handles delegated tasks (blank = gateway default agent, "main").
     // Set to an agent id like "developer" to route voice-triggered execute calls to that
@@ -215,6 +248,7 @@ object SettingsManager {
 
     fun resetAll() {
         prefs.edit().clear().apply()
+        securePrefs.edit().clear().apply()
     }
 
     // Not translated -- it's a personal name-based phrase, equally learnable in either language.

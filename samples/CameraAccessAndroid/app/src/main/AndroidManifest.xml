@@ -15,6 +15,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- usesCleartextTraffic is required because the OpenClaw gateway is a self-hosted,
+         user-configured host (often a raw Tailscale IP or .local name) with no TLS of its
+         own; networkSecurityConfig can't narrow this to just that host since it only
+         supports fixed domains known at build time, not IP-CIDR allowlisting. The actual
+         boundary is enforced in code instead: see openclaw/PrivateNetworkGuard.kt, which
+         refuses to send the gateway bearer token over cleartext to anything that isn't a
+         private/local address. -->
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"

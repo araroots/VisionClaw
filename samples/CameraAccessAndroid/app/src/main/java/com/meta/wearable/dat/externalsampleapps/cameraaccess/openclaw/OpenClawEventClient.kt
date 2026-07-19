@@ -59,6 +59,13 @@ class OpenClawEventClient {
         // socket, and without this a single failure could spawn multiple concurrent sockets that
         // each spawn their own reconnect, snowballing into hundreds of connections per minute.
         if (isConnecting || isConnected) return
+
+        if (!PrivateNetworkGuard.isCleartextHostAllowed(GeminiConfig.openClawHost)) {
+            Log.w(TAG, "Refused cleartext OpenClaw event connection to non-private host: ${GeminiConfig.openClawHost}")
+            shouldReconnect = false
+            return
+        }
+
         isConnecting = true
 
         val host = GeminiConfig.openClawHost

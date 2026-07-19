@@ -55,6 +55,14 @@ class OpenClawBridge {
         }
         _connectionState.value = OpenClawConnectionState.Checking
 
+        if (!PrivateNetworkGuard.isCleartextHostAllowed(GeminiConfig.openClawHost)) {
+            _connectionState.value = OpenClawConnectionState.Unreachable(
+                "Refusing to send the gateway token in the clear to a non-private host"
+            )
+            Log.w(TAG, "Refused cleartext OpenClaw connection to non-private host: ${GeminiConfig.openClawHost}")
+            return@withContext
+        }
+
         val url = "${GeminiConfig.openClawHost}:${GeminiConfig.openClawPort}/v1/chat/completions"
         try {
             val request = Request.Builder()
@@ -90,6 +98,14 @@ class OpenClawBridge {
         toolName: String = "execute"
     ): ToolResult = withContext(Dispatchers.IO) {
         _lastToolCallStatus.value = ToolCallStatus.Executing(toolName)
+
+        if (!PrivateNetworkGuard.isCleartextHostAllowed(GeminiConfig.openClawHost)) {
+            _lastToolCallStatus.value = ToolCallStatus.Failed(toolName, "Non-private host")
+            Log.w(TAG, "Refused cleartext OpenClaw request to non-private host: ${GeminiConfig.openClawHost}")
+            return@withContext ToolResult.Failure(
+                "Refusing to send the gateway token in the clear to a non-private host"
+            )
+        }
 
         val url = "${GeminiConfig.openClawHost}:${GeminiConfig.openClawPort}/v1/chat/completions"
 

@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.AppLanguage
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.LocalAppLanguage
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
@@ -27,7 +28,11 @@ fun LanguageToggle(modifier: Modifier = Modifier) {
     val appLanguage = LocalAppLanguage.current
 
     Row(
+        // Explicit zIndex so this always wins hit-testing over whatever else is in the same
+        // corner of the screen, regardless of declaration order in the parent Box -- on
+        // HomeScreen specifically, the tap sometimes seemed to not land on this at all.
         modifier = modifier
+            .zIndex(10f)
             .clip(RoundedCornerShape(999.dp))
             .background(Color.Black.copy(alpha = 0.35f))
             .padding(3.dp),

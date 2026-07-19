@@ -138,7 +138,7 @@ fun ControlsRow(
                         modifier = Modifier.height(22.dp),
                     )
                     Text(
-                        text = "IA",
+                        text = tr("IA", "AI"),
                         color = Color.White.copy(alpha = 0.9f),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,

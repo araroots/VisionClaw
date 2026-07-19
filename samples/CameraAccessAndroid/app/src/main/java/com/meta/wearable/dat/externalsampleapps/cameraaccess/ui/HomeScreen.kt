@@ -32,12 +32,9 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -47,9 +44,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.R
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.AppLanguage
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.LocalAppLanguage
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.tr
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.wearables.WearablesViewModel
 
@@ -62,42 +56,16 @@ fun HomeScreen(
   val activity = LocalActivity.current
   val context = LocalContext.current
 
-  val appLanguage = LocalAppLanguage.current
   // Hoisted out of the onClick lambda below -- tr() is @Composable and can't be called from a
   // plain event-handler lambda, only from composable scope.
   val activityNotAvailableMessage = tr("Activity não disponível", "Activity not available")
 
   Box(modifier = modifier.fillMaxSize()) {
-    // Toggles the wake-word recognizer's language, the default voice-trigger phrases, and every
-    // translated string in the app (via LocalAppLanguage/tr()) between Portuguese and English.
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier =
-            Modifier.align(Alignment.TopStart)
-                .systemBarsPadding()
-                .padding(8.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .clickable {
-                  SettingsManager.appLanguage = if (appLanguage == AppLanguage.PORTUGUESE) {
-                    AppLanguage.ENGLISH
-                  } else {
-                    AppLanguage.PORTUGUESE
-                  }
-                }
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-    ) {
-      Text(
-          text = if (appLanguage == AppLanguage.PORTUGUESE) "🇧🇷" else "🇺🇸",
-          fontSize = 20.sp,
-      )
-      Spacer(modifier = Modifier.width(4.dp))
-      Text(
-          text = appLanguage.shortLabel,
-          fontSize = 13.sp,
-          fontWeight = FontWeight.SemiBold,
-          color = Color.Gray,
-      )
-    }
+    // Shows both PT and EN with the active one highlighted, rather than a single flag that
+    // silently swaps on tap and reads as a passive status badge instead of a control.
+    LanguageToggle(
+        modifier = Modifier.align(Alignment.TopStart).systemBarsPadding().padding(8.dp),
+    )
 
     // Settings gear + history (top-right)
     Row(modifier = Modifier.align(Alignment.TopEnd).systemBarsPadding().padding(8.dp)) {

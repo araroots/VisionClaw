@@ -87,6 +87,13 @@ fun NonStreamScreen(
         modifier = modifier.fillMaxSize().background(Color.Black).padding(all = 24.dp),
         contentAlignment = Alignment.Center,
     ) {
+      // Language toggle (top-left) -- this is the screen most users actually land on day to
+      // day (glasses already registered), so the toggle needs to live here too, not just on
+      // the one-time HomeScreen registration flow.
+      LanguageToggle(
+          modifier = Modifier.align(Alignment.TopStart).systemBarsPadding(),
+      )
+
       // Top bar: settings + disconnect
       Row(
           modifier = Modifier.align(Alignment.TopEnd).systemBarsPadding(),

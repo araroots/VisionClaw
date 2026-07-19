@@ -43,7 +43,9 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -97,6 +99,12 @@ fun StreamScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
     var isChatPanelOpen by remember { mutableStateOf(false) }
+    // Measured live off ControlsRow itself (rather than a hardcoded offset) so the chat panel
+    // always clears it -- ControlsRow's height now varies with whether the "more options" tray
+    // is expanded, and a fixed padding either overlapped it when open or left a wide gap when
+    // closed.
+    val density = LocalDensity.current
+    var controlsHeight by remember { mutableStateOf(0.dp) }
 
     // Wire Gemini VM to Stream VM for frame forwarding
     LaunchedEffect(geminiViewModel) {
@@ -235,7 +243,7 @@ fun StreamScreen(
                     onSend = { geminiViewModel.sendChatMessage(it) },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 190.dp)
+                        .padding(bottom = controlsHeight + 16.dp)
                         .fillMaxWidth(0.9f)
                         .heightIn(max = 240.dp),
                 )
@@ -253,7 +261,14 @@ fun StreamScreen(
                 isCaptureEnabled = isPhoneMode || streamUiState.streamSessionState == StreamSessionState.STREAMING,
                 onToggleCamera = {
                     if (streamUiState.streamSessionState == StreamSessionState.STOPPED) {
-                        streamViewModel.startStream()
+                        // Restarting in phone mode must go back through startPhoneCamera() --
+                        // the plain startStream() call is glasses-only, which is why this button
+                        // used to bring the glasses stream back instead of the phone camera.
+                        if (isPhoneMode) {
+                            streamViewModel.startPhoneCamera(lifecycleOwner)
+                        } else {
+                            streamViewModel.startStream()
+                        }
                     } else {
                         streamViewModel.stopStream()
                     }
@@ -291,7 +306,9 @@ fun StreamScreen(
                     }
                 },
                 isRecording = streamUiState.isRecording,
-                modifier = Modifier.align(Alignment.BottomCenter),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .onSizeChanged { controlsHeight = with(density) { it.height.toDp() } },
             )
         }
     }

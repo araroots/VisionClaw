@@ -1,8 +1,22 @@
 .DS_Store
 
+# OpenClaw developer agent workspace scaffolding (workspace = repo root)
+/AGENTS.md
+/HEARTBEAT.md
+/IDENTITY.md
+/SOUL.md
+/TOOLS.md
+/USER.md
+/openclaw-workspace-state.json
+
 # Android
 samples/CameraAccessAndroid/app/src/main/java/**/Secrets.kt
 samples/CameraAccessAndroid/local.properties
 samples/CameraAccessAndroid/.gradle/
 samples/CameraAccessAndroid/build/
 samples/CameraAccessAndroid/app/build/
+
+# Signaling server: TLS cert/key from `tailscale cert` -- machine-specific, regenerate via
+# `tailscale cert <hostname>` on whichever box runs the server. Never commit a private key.
+samples/CameraAccess/server/*.crt
+samples/CameraAccess/server/*.key

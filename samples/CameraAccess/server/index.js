@@ -1,4 +1,5 @@
 const http = require("http");
+const https = require("https");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
@@ -6,6 +7,25 @@ const { WebSocketServer } = require("ws");
 
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = path.join(__dirname, "public");
+
+// TLS from `tailscale cert <hostname>`, run once on whichever machine hosts this server (see
+// README). Falls back to plain HTTP/WS if no cert is present -- e.g. local dev, or a machine
+// that hasn't been through that one-time setup yet -- rather than refusing to start.
+function loadTlsCredentials() {
+  if (process.env.TLS_CERT_PATH && process.env.TLS_KEY_PATH) {
+    return {
+      cert: fs.readFileSync(process.env.TLS_CERT_PATH),
+      key: fs.readFileSync(process.env.TLS_KEY_PATH),
+    };
+  }
+  const certFile = fs.readdirSync(__dirname).find((f) => f.endsWith(".crt"));
+  const keyFile = fs.readdirSync(__dirname).find((f) => f.endsWith(".key"));
+  if (!certFile || !keyFile) return null;
+  return {
+    cert: fs.readFileSync(path.join(__dirname, certFile)),
+    key: fs.readFileSync(path.join(__dirname, keyFile)),
+  };
+}
 const ROOM_CODE_RE = /^[A-Z2-9]{6}$/; // matches generateRoomCode()'s alphabet/length
 const rooms = new Map(); // roomCode -> { creator: ws, viewer: ws, creatorToken: string, destroyTimer: timeout|null }
 
@@ -37,8 +57,11 @@ function getTurnCredentials() {
   };
 }
 
-// HTTP server for serving the web viewer
-const httpServer = http.createServer((req, res) => {
+// HTTP(S) server for serving the web viewer -- HTTPS (and wss:// for signaling, since the
+// WebSocket server below attaches to this same listener) whenever a TLS cert is available,
+// otherwise falls back to plain HTTP so local dev keeps working without one.
+const tls = loadTlsCredentials();
+const requestHandler = (req, res) => {
   // TURN credentials API endpoint
   if (req.url === "/api/turn") {
     const creds = getTurnCredentials();
@@ -88,7 +111,19 @@ const httpServer = http.createServer((req, res) => {
     });
     res.end(data);
   });
-});
+};
+
+const httpServer = tls
+  ? https.createServer(tls, requestHandler)
+  : http.createServer(requestHandler);
+
+if (!tls) {
+  console.warn(
+    "[TLS] No certificate found (looked for TLS_CERT_PATH/TLS_KEY_PATH env vars, or a " +
+      "*.crt/*.key pair in this directory) -- serving plain HTTP/WS. Run " +
+      "`tailscale cert <this-machine's-name>.<tailnet>.ts.net` in this directory to enable HTTPS/WSS."
+  );
+}
 
 // WebSocket signaling server
 const wss = new WebSocketServer({ server: httpServer });
@@ -307,6 +342,7 @@ wss.on("connection", (ws, req) => {
 });
 
 httpServer.listen(PORT, "0.0.0.0", () => {
-  console.log(`Signaling server running on http://0.0.0.0:${PORT}`);
-  console.log(`Web viewer available at http://localhost:${PORT}`);
+  const scheme = tls ? "https" : "http";
+  console.log(`Signaling server running on ${scheme}://0.0.0.0:${PORT}`);
+  console.log(`Web viewer available at ${scheme}://localhost:${PORT}`);
 });

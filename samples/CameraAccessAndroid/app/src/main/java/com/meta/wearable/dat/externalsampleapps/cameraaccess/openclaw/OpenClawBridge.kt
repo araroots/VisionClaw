@@ -114,8 +114,13 @@ class OpenClawBridge {
                 messagesArray.put(msg)
             }
 
+            // Routes to a specific configured OpenClaw agent (e.g. "developer") when set;
+            // otherwise "openclaw" alone hits the gateway's default agent ("main").
+            val agentId = GeminiConfig.openClawAgentId.trim()
+            val model = if (agentId.isEmpty()) "openclaw" else "openclaw/$agentId"
+
             val body = JSONObject().apply {
-                put("model", "openclaw")
+                put("model", model)
                 put("messages", messagesArray)
                 put("stream", false)
             }

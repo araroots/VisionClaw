@@ -55,6 +55,7 @@ fun SettingsScreen(
     var openClawPort by remember { mutableStateOf(SettingsManager.openClawPort.toString()) }
     var openClawHookToken by remember { mutableStateOf(SettingsManager.openClawHookToken) }
     var openClawGatewayToken by remember { mutableStateOf(SettingsManager.openClawGatewayToken) }
+    var openClawAgentId by remember { mutableStateOf(SettingsManager.openClawAgentId) }
     var webrtcSignalingURL by remember { mutableStateOf(SettingsManager.webrtcSignalingURL) }
     var videoStreamingEnabled by remember { mutableStateOf(SettingsManager.videoStreamingEnabled) }
     var proactiveNotificationsEnabled by remember { mutableStateOf(SettingsManager.proactiveNotificationsEnabled) }
@@ -88,6 +89,7 @@ fun SettingsScreen(
         openClawPort.trim().toIntOrNull()?.let { SettingsManager.openClawPort = it }
         SettingsManager.openClawHookToken = openClawHookToken.trim()
         SettingsManager.openClawGatewayToken = openClawGatewayToken.trim()
+        SettingsManager.openClawAgentId = openClawAgentId.trim()
         SettingsManager.webrtcSignalingURL = webrtcSignalingURL.trim()
         SettingsManager.videoStreamingEnabled = videoStreamingEnabled
         SettingsManager.proactiveNotificationsEnabled = proactiveNotificationsEnabled
@@ -121,6 +123,7 @@ fun SettingsScreen(
         openClawPort = SettingsManager.openClawPort.toString()
         openClawHookToken = SettingsManager.openClawHookToken
         openClawGatewayToken = SettingsManager.openClawGatewayToken
+        openClawAgentId = SettingsManager.openClawAgentId
         webrtcSignalingURL = SettingsManager.webrtcSignalingURL
         videoStreamingEnabled = SettingsManager.videoStreamingEnabled
         proactiveNotificationsEnabled = SettingsManager.proactiveNotificationsEnabled
@@ -241,6 +244,12 @@ fun SettingsScreen(
                 onValueChange = { openClawGatewayToken = it },
                 label = "Gateway Token",
                 placeholder = "Gateway auth token",
+            )
+            MonoTextField(
+                value = openClawAgentId,
+                onValueChange = { openClawAgentId = it },
+                label = "Agent ID",
+                placeholder = "Blank = default agent (e.g. developer)",
             )
 
             // WebRTC section

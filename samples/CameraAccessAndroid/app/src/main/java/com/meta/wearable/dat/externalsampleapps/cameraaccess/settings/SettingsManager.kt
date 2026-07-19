@@ -53,6 +53,13 @@ object SettingsManager {
         get() = prefs.getString("openClawGatewayToken", null) ?: Secrets.openClawGatewayToken
         set(value) = prefs.edit().putString("openClawGatewayToken", value).apply()
 
+    // Which OpenClaw agent handles delegated tasks (blank = gateway default agent, "main").
+    // Set to an agent id like "developer" to route voice-triggered execute calls to that
+    // agent's own workspace/model instead.
+    var openClawAgentId: String
+        get() = prefs.getString("openClawAgentId", null) ?: ""
+        set(value) = prefs.edit().putString("openClawAgentId", value).apply()
+
     var webrtcSignalingURL: String
         get() = prefs.getString("webrtcSignalingURL", null) ?: Secrets.webrtcSignalingURL
         set(value) = prefs.edit().putString("webrtcSignalingURL", value).apply()

@@ -13,7 +13,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 sealed class SignalingMessage {
-    data class RoomCreated(val room: String) : SignalingMessage()
+    data class RoomCreated(val room: String, val token: String) : SignalingMessage()
     data class RoomRejoined(val room: String) : SignalingMessage()
     object RoomJoined : SignalingMessage()
     object PeerJoined : SignalingMessage()
@@ -82,8 +82,8 @@ class SignalingClient {
         sendJSON(JSONObject().put("type", "join").put("room", code))
     }
 
-    fun rejoinRoom(code: String) {
-        sendJSON(JSONObject().put("type", "rejoin").put("room", code))
+    fun rejoinRoom(code: String, token: String) {
+        sendJSON(JSONObject().put("type", "rejoin").put("room", code).put("token", token))
     }
 
     fun sendSdp(sdp: SessionDescription) {
@@ -121,8 +121,9 @@ class SignalingClient {
             when (type) {
                 "room_created" -> {
                     val room = json.optString("room", "")
-                    if (room.isNotEmpty()) {
-                        onMessageReceived?.invoke(SignalingMessage.RoomCreated(room))
+                    val token = json.optString("token", "")
+                    if (room.isNotEmpty() && token.isNotEmpty()) {
+                        onMessageReceived?.invoke(SignalingMessage.RoomCreated(room, token))
                     }
                 }
                 "room_joined" -> {

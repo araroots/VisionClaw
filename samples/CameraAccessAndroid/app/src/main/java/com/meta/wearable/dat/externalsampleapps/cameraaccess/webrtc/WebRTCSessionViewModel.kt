@@ -49,6 +49,10 @@ class WebRTCSessionViewModel(application: Application) : AndroidViewModel(applic
     private var webRTCClient: WebRTCClient? = null
     private var signalingClient: SignalingClient? = null
     private var savedRoomCode: String? = null
+    // Proves we're the original creator when rejoining -- required by the server so a room
+    // code alone (which the viewer also has, and which could leak/be guessed) can't be used
+    // to hijack the creator role.
+    private var savedCreatorToken: String? = null
 
     private val lifecycleObserver = object : DefaultLifecycleObserver {
         override fun onStart(owner: LifecycleOwner) {
@@ -72,6 +76,7 @@ class WebRTCSessionViewModel(application: Application) : AndroidViewModel(applic
             connectionState = WebRTCConnectionState.Connecting,
         )
         savedRoomCode = null
+        savedCreatorToken = null
 
         viewModelScope.launch {
             val iceServers = WebRTCConfig.fetchIceServers()
@@ -88,6 +93,7 @@ class WebRTCSessionViewModel(application: Application) : AndroidViewModel(applic
         signalingClient?.disconnect()
         signalingClient = null
         savedRoomCode = null
+        savedCreatorToken = null
         _uiState.value = WebRTCUiState()
     }
 
@@ -159,9 +165,10 @@ class WebRTCSessionViewModel(application: Application) : AndroidViewModel(applic
 
         signaling.onConnected = {
             viewModelScope.launch {
-                if (rejoinCode != null) {
+                val token = savedCreatorToken
+                if (rejoinCode != null && token != null) {
                     Log.d(TAG, "Reconnected, rejoining room: $rejoinCode")
-                    signalingClient?.rejoinRoom(rejoinCode)
+                    signalingClient?.rejoinRoom(rejoinCode, token)
                 } else {
                     signalingClient?.createRoom()
                 }
@@ -200,6 +207,7 @@ class WebRTCSessionViewModel(application: Application) : AndroidViewModel(applic
                     connectionState = WebRTCConnectionState.WaitingForPeer,
                 )
                 savedRoomCode = message.room
+                savedCreatorToken = message.token
                 Log.d(TAG, "Room created: ${message.room}")
             }
             is SignalingMessage.RoomRejoined -> {
@@ -233,10 +241,14 @@ class WebRTCSessionViewModel(application: Application) : AndroidViewModel(applic
                 )
             }
             is SignalingMessage.Error -> {
-                // If rejoin fails (room expired), create a new room
-                if (savedRoomCode != null && message.message == "Room not found") {
-                    Log.d(TAG, "Rejoin failed (room expired), creating new room")
+                // If rejoin fails (room expired, or our saved token no longer matches), fall
+                // back to creating a new room rather than dead-ending on a raw error.
+                if (savedRoomCode != null &&
+                    (message.message == "Room not found" || message.message == "Unauthorized")
+                ) {
+                    Log.d(TAG, "Rejoin failed (${message.message}), creating new room")
                     savedRoomCode = null
+                    savedCreatorToken = null
                     signalingClient?.createRoom()
                 } else {
                     _uiState.value = _uiState.value.copy(errorMessage = message.message)

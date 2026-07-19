@@ -1,10 +1,13 @@
 const http = require("http");
+const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const { WebSocketServer } = require("ws");
 
 const PORT = process.env.PORT || 8080;
-const rooms = new Map(); // roomCode -> { creator: ws, viewer: ws, destroyTimer: timeout|null }
+const PUBLIC_DIR = path.join(__dirname, "public");
+const ROOM_CODE_RE = /^[A-Z2-9]{6}$/; // matches generateRoomCode()'s alphabet/length
+const rooms = new Map(); // roomCode -> { creator: ws, viewer: ws, creatorToken: string, destroyTimer: timeout|null }
 
 // Grace period (ms) before destroying a room when creator disconnects.
 // Allows the iOS user to switch apps (e.g. copy room code, send via WhatsApp) and come back.
@@ -47,11 +50,25 @@ const httpServer = http.createServer((req, res) => {
     return;
   }
 
-  let filePath = path.join(
-    __dirname,
-    "public",
-    req.url === "/" ? "index.html" : req.url
+  // Resolve against PUBLIC_DIR and verify the result is still inside it -- req.url can contain
+  // "../" (or its encoded forms), which without this check lets a request walk out of public/
+  // and read arbitrary files under the server directory (e.g. this very source file).
+  let requestedPath;
+  try {
+    requestedPath = decodeURIComponent(req.url.split("?")[0]);
+  } catch {
+    res.writeHead(400);
+    res.end("Bad request");
+    return;
+  }
+  const filePath = path.normalize(
+    path.join(PUBLIC_DIR, requestedPath === "/" ? "index.html" : requestedPath)
   );
+  if (filePath !== PUBLIC_DIR && !filePath.startsWith(PUBLIC_DIR + path.sep)) {
+    res.writeHead(403);
+    res.end("Forbidden");
+    return;
+  }
 
   const ext = path.extname(filePath);
   const contentTypes = {
@@ -86,6 +103,40 @@ function generateRoomCode() {
   return code;
 }
 
+function generateCreatorToken() {
+  return crypto.randomBytes(24).toString("hex");
+}
+
+// Per-IP sliding-window limiter for room create/join/rejoin -- these are the actions an
+// attacker would hammer to enumerate/brute-force room codes. Generous enough for normal
+// reconnect churn (grace-period rejoins, retries) but well below what brute-forcing a 6-char
+// code (32^6 combinations) would need to be practical.
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 20;
+const rateLimitState = new Map(); // ip -> { count, windowStart }
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const entry = rateLimitState.get(ip);
+  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+    rateLimitState.set(ip, { count: 1, windowStart: now });
+    return false;
+  }
+  entry.count += 1;
+  return entry.count > RATE_LIMIT_MAX;
+}
+
+// Without this, rateLimitState would grow forever on a long-running server -- one entry per
+// distinct IP ever seen.
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of rateLimitState) {
+    if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+      rateLimitState.delete(ip);
+    }
+  }
+}, RATE_LIMIT_WINDOW_MS).unref();
+
 wss.on("connection", (ws, req) => {
   let currentRoom = null;
   let role = null; // 'creator' or 'viewer'
@@ -99,25 +150,46 @@ wss.on("connection", (ws, req) => {
     } catch {
       return;
     }
+    if (typeof msg !== "object" || msg === null || typeof msg.type !== "string") {
+      return;
+    }
+
+    if (["create", "join", "rejoin"].includes(msg.type) && isRateLimited(clientIP)) {
+      ws.send(JSON.stringify({ type: "error", message: "Too many attempts, slow down" }));
+      console.log(`[RateLimit] Blocked ${msg.type} from ${clientIP}`);
+      return;
+    }
 
     switch (msg.type) {
       case "create": {
         const code = generateRoomCode();
-        rooms.set(code, { creator: ws, viewer: null, destroyTimer: null });
+        const creatorToken = generateCreatorToken();
+        rooms.set(code, { creator: ws, viewer: null, creatorToken, destroyTimer: null });
         currentRoom = code;
         role = "creator";
-        ws.send(JSON.stringify({ type: "room_created", room: code }));
+        ws.send(JSON.stringify({ type: "room_created", room: code, token: creatorToken }));
         console.log(`[Room] Created: ${code}`);
         break;
       }
 
       case "rejoin": {
-        // Creator reconnects to an existing room (after app backgrounding)
+        // Creator reconnects to an existing room (after app backgrounding). Requires the
+        // token handed out at creation -- without this, anyone who learns/guesses a room
+        // code could "rejoin" as creator and hijack the stream.
+        if (typeof msg.room !== "string" || !ROOM_CODE_RE.test(msg.room)) {
+          ws.send(JSON.stringify({ type: "error", message: "Invalid room code" }));
+          return;
+        }
         const room = rooms.get(msg.room);
         if (!room) {
           ws.send(
             JSON.stringify({ type: "error", message: "Room not found" })
           );
+          return;
+        }
+        if (typeof msg.token !== "string" || msg.token !== room.creatorToken) {
+          ws.send(JSON.stringify({ type: "error", message: "Unauthorized" }));
+          console.log(`[Room] Rejected rejoin with invalid token: ${msg.room}`);
           return;
         }
         // Cancel the destroy timer since creator is back
@@ -140,6 +212,10 @@ wss.on("connection", (ws, req) => {
       }
 
       case "join": {
+        if (typeof msg.room !== "string" || !ROOM_CODE_RE.test(msg.room)) {
+          ws.send(JSON.stringify({ type: "error", message: "Invalid room code" }));
+          return;
+        }
         const room = rooms.get(msg.room);
         if (!room) {
           ws.send(
@@ -167,6 +243,14 @@ wss.on("connection", (ws, req) => {
       case "offer":
       case "answer":
       case "candidate": {
+        if (!role || !currentRoom) {
+          return; // haven't create/join/rejoin'd yet -- nothing to relay into
+        }
+        const sdpField = msg.type === "candidate" ? msg.candidate : msg.sdp;
+        if (typeof sdpField !== "string" || sdpField.length === 0) {
+          console.log(`[Relay] Dropped malformed ${msg.type} from ${role}`);
+          return;
+        }
         const room = rooms.get(currentRoom);
         if (!room) {
           console.log(`[Relay] ${msg.type} from ${role} but room ${currentRoom} not found`);

@@ -29,6 +29,10 @@ class WebRTCSessionViewModel: ObservableObject {
 
   /// Saved room code for reconnecting after app backgrounding.
   private var savedRoomCode: String?
+  /// Proves we're the original creator when rejoining -- required by the server so a room
+  /// code alone (which the viewer also has, and which could leak/be guessed) can't be used
+  /// to hijack the creator role.
+  private var savedCreatorToken: String?
   private var foregroundObserver: Any?
 
   func startSession() async {
@@ -41,6 +45,7 @@ class WebRTCSessionViewModel: ObservableObject {
     isActive = true
     connectionState = .connecting
     savedRoomCode = nil
+    savedCreatorToken = nil
 
     // Fetch TURN credentials for NAT traversal across networks
     let iceServers = await WebRTCConfig.fetchIceServers()
@@ -61,6 +66,7 @@ class WebRTCSessionViewModel: ObservableObject {
     connectionState = .disconnected
     roomCode = ""
     savedRoomCode = nil
+    savedCreatorToken = nil
     isMuted = false
     remoteVideoTrack = nil
     hasRemoteVideo = false
@@ -96,9 +102,9 @@ class WebRTCSessionViewModel: ObservableObject {
 
     signaling.onConnected = { [weak self] in
       Task { @MainActor in
-        if let code = rejoinCode {
+        if let code = rejoinCode, let token = self?.savedCreatorToken {
           NSLog("[WebRTC] Reconnected, rejoining room: %@", code)
-          self?.signalingClient?.rejoinRoom(code: code)
+          self?.signalingClient?.rejoinRoom(code: code, token: token)
         } else {
           self?.signalingClient?.createRoom()
         }
@@ -177,9 +183,10 @@ class WebRTCSessionViewModel: ObservableObject {
 
   private func handleSignalingMessage(_ message: SignalingMessage) {
     switch message {
-    case .roomCreated(let code):
+    case .roomCreated(let code, let token):
       roomCode = code
       savedRoomCode = code
+      savedCreatorToken = token
       connectionState = .waitingForPeer
       NSLog("[WebRTC] Room created: %@", code)
 
@@ -214,10 +221,12 @@ class WebRTCSessionViewModel: ObservableObject {
       connectionState = .waitingForPeer
 
     case .error(let msg):
-      // If rejoin fails (room expired), fall back to creating a new room
-      if savedRoomCode != nil && msg == "Room not found" {
-        NSLog("[WebRTC] Rejoin failed (room expired), creating new room")
+      // If rejoin fails (room expired, or our saved token no longer matches), fall back to
+      // creating a new room rather than dead-ending on a raw error.
+      if savedRoomCode != nil && (msg == "Room not found" || msg == "Unauthorized") {
+        NSLog("[WebRTC] Rejoin failed (%@), creating new room", msg)
         savedRoomCode = nil
+        savedCreatorToken = nil
         signalingClient?.createRoom()
       } else {
         errorMessage = msg

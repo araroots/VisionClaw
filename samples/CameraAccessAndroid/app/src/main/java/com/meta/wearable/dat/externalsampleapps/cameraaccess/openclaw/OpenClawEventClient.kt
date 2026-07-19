@@ -24,6 +24,7 @@ class OpenClawEventClient {
 
     private var webSocket: WebSocket? = null
     private var isConnected = false
+    private var isConnecting = false
     private var shouldReconnect = false
     private var reconnectDelayMs = 2_000L
     private val handler = Handler(Looper.getMainLooper())
@@ -46,6 +47,7 @@ class OpenClawEventClient {
     fun disconnect() {
         shouldReconnect = false
         isConnected = false
+        isConnecting = false
         handler.removeCallbacksAndMessages(null)
         webSocket?.close(1000, null)
         webSocket = null
@@ -53,6 +55,12 @@ class OpenClawEventClient {
     }
 
     private fun establishConnection() {
+        // Guard against overlapping attempts -- onFailure/onClosing can both fire for the same
+        // socket, and without this a single failure could spawn multiple concurrent sockets that
+        // each spawn their own reconnect, snowballing into hundreds of connections per minute.
+        if (isConnecting || isConnected) return
+        isConnecting = true
+
         val host = GeminiConfig.openClawHost
             .replace("http://", "")
             .replace("https://", "")
@@ -74,12 +82,25 @@ class OpenClawEventClient {
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 Log.e(TAG, "WebSocket failure: ${t.message}")
                 isConnected = false
+                isConnecting = false
                 scheduleReconnect()
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
                 Log.d(TAG, "WebSocket closing: $code $reason")
                 isConnected = false
+                isConnecting = false
+                // Code 1008 here means the gateway rejected our connect handshake itself (policy
+                // violation, e.g. this node identity was never paired) -- that is a permanent
+                // rejection, not a dropped connection, so retrying it verbatim would just fail
+                // forever. OpenClaw's node pairing (QR/setup-code + key exchange, see `openclaw
+                // qr`) isn't implemented on the Android side, so proactive notifications cannot
+                // work until that pairing flow is built -- stop rather than loop indefinitely.
+                if (code == 1008) {
+                    Log.w(TAG, "Gateway rejected connect handshake (node not paired) -- giving up until next app restart")
+                    shouldReconnect = false
+                    return
+                }
                 scheduleReconnect()
             }
         })
@@ -97,6 +118,7 @@ class OpenClawEventClient {
                     if (ok) {
                         Log.d(TAG, "Connected and authenticated")
                         isConnected = true
+                        isConnecting = false
                         reconnectDelayMs = 2_000L
                     } else {
                         val error = json.optJSONObject("error")

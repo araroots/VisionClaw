@@ -130,6 +130,13 @@ object SettingsManager {
         get() = prefs.getBoolean("continuousConversationEnabled", true)
         set(value) = prefs.edit().putBoolean("continuousConversationEnabled", value).apply()
 
+    // How long the AI's conversation history is kept on-device across app restarts, in days.
+    // 0 = disabled (nothing persisted, cleared on change); -1 = keep forever (still capped by
+    // ConversationHistoryStore's hard entry limit).
+    var conversationHistoryRetentionDays: Int
+        get() = prefs.getInt("conversationHistoryRetentionDays", DEFAULT_HISTORY_RETENTION_DAYS)
+        set(value) = prefs.edit().putInt("conversationHistoryRetentionDays", value).apply()
+
     // Playback speed for the AI's spoken responses (both Gemini Live and OpenAI Realtime share
     // the same AudioManager output path, so this applies to either provider). Pitch is kept
     // constant regardless of speed -- see AudioManager's use of PlaybackParams.
@@ -176,6 +183,7 @@ object SettingsManager {
     const val DEFAULT_RECORDING_START_PHRASE = "Gravar vídeo"
     const val DEFAULT_RECORDING_STOP_PHRASE = "Parar gravação"
     const val DEFAULT_FRAME_RATE = 24
+    const val DEFAULT_HISTORY_RETENTION_DAYS = 30
 
     const val DEFAULT_SYSTEM_PROMPT = """You are an AI assistant for someone wearing Meta Ray-Ban smart glasses. You can see through their camera and have a voice conversation. Keep responses concise and natural.
 

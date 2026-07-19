@@ -35,9 +35,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.meta.wearable.dat.camera.types.VideoQuality
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.gemini.ConversationHistoryStore
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.AIProvider
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
 
@@ -47,6 +49,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     var aiProvider by remember { mutableStateOf(SettingsManager.aiProvider) }
     var geminiAPIKey by remember { mutableStateOf(SettingsManager.geminiAPIKey) }
     var openaiAPIKey by remember { mutableStateOf(SettingsManager.openaiAPIKey) }
@@ -72,6 +75,13 @@ fun SettingsScreen(
     var recordingStartPhrase by remember { mutableStateOf(SettingsManager.recordingStartPhrase) }
     var recordingStopPhrase by remember { mutableStateOf(SettingsManager.recordingStopPhrase) }
     var continuousConversationEnabled by remember { mutableStateOf(SettingsManager.continuousConversationEnabled) }
+    var conversationHistoryEnabled by remember { mutableStateOf(SettingsManager.conversationHistoryRetentionDays != 0) }
+    var conversationHistoryRetentionDays by remember {
+        mutableStateOf(
+            (if (SettingsManager.conversationHistoryRetentionDays == 0) SettingsManager.DEFAULT_HISTORY_RETENTION_DAYS
+            else SettingsManager.conversationHistoryRetentionDays).toString()
+        )
+    }
     var aiSpeechSpeed by remember { mutableStateOf(SettingsManager.aiSpeechSpeed) }
     var videoQuality by remember { mutableStateOf(SettingsManager.videoQuality) }
     var videoFrameRate by remember { mutableStateOf(SettingsManager.videoFrameRate.toString()) }
@@ -106,6 +116,15 @@ fun SettingsScreen(
         SettingsManager.recordingStartPhrase = recordingStartPhrase.trim().ifEmpty { SettingsManager.DEFAULT_RECORDING_START_PHRASE }
         SettingsManager.recordingStopPhrase = recordingStopPhrase.trim().ifEmpty { SettingsManager.DEFAULT_RECORDING_STOP_PHRASE }
         SettingsManager.continuousConversationEnabled = continuousConversationEnabled
+        val newRetentionDays = if (conversationHistoryEnabled) {
+            conversationHistoryRetentionDays.trim().toIntOrNull() ?: SettingsManager.DEFAULT_HISTORY_RETENTION_DAYS
+        } else {
+            0
+        }
+        if (newRetentionDays == 0 && SettingsManager.conversationHistoryRetentionDays != 0) {
+            ConversationHistoryStore(context).clear()
+        }
+        SettingsManager.conversationHistoryRetentionDays = newRetentionDays
         SettingsManager.aiSpeechSpeed = aiSpeechSpeed
         SettingsManager.videoQuality = videoQuality
         videoFrameRate.trim().toIntOrNull()?.let { SettingsManager.videoFrameRate = it }
@@ -140,6 +159,10 @@ fun SettingsScreen(
         recordingStartPhrase = SettingsManager.recordingStartPhrase
         recordingStopPhrase = SettingsManager.recordingStopPhrase
         continuousConversationEnabled = SettingsManager.continuousConversationEnabled
+        conversationHistoryEnabled = SettingsManager.conversationHistoryRetentionDays != 0
+        conversationHistoryRetentionDays =
+            (if (SettingsManager.conversationHistoryRetentionDays == 0) SettingsManager.DEFAULT_HISTORY_RETENTION_DAYS
+            else SettingsManager.conversationHistoryRetentionDays).toString()
         aiSpeechSpeed = SettingsManager.aiSpeechSpeed
         videoQuality = SettingsManager.videoQuality
         videoFrameRate = SettingsManager.videoFrameRate.toString()
@@ -349,6 +372,33 @@ fun SettingsScreen(
                         onCheckedChange = { continuousConversationEnabled = it },
                     )
                 }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("Remember Conversations", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Keep conversation history on this phone across restarts, so the AI remembers past conversations.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = conversationHistoryEnabled,
+                    onCheckedChange = { conversationHistoryEnabled = it },
+                )
+            }
+            if (conversationHistoryEnabled) {
+                MonoTextField(
+                    value = conversationHistoryRetentionDays,
+                    onValueChange = { conversationHistoryRetentionDays = it },
+                    label = "Keep History For (days, -1 = forever)",
+                    placeholder = SettingsManager.DEFAULT_HISTORY_RETENTION_DAYS.toString(),
+                )
             }
 
             Row(

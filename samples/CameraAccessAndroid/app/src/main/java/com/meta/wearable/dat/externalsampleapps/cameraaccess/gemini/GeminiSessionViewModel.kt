@@ -52,12 +52,18 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
 
     // Durable log of completed turns (voice + typed), kept outside GeminiUiState so it survives
     // stopSession()'s full state reset -- this is what lets the conversation continue across the
-    // AI on/off toggle instead of starting cold every time.
-    private val _conversationHistory = MutableStateFlow<List<ConversationTurn>>(emptyList())
+    // AI on/off toggle instead of starting cold every time. Also hydrated from disk at startup
+    // and persisted on every append, so the AI keeps remembering across app restarts too, bounded
+    // by SettingsManager.conversationHistoryRetentionDays.
+    private val historyStore = ConversationHistoryStore(application)
+    private val _conversationHistory = MutableStateFlow(
+        historyStore.load(SettingsManager.conversationHistoryRetentionDays).takeLast(MAX_HISTORY_TURNS * 2)
+    )
     val conversationHistory: StateFlow<List<ConversationTurn>> = _conversationHistory.asStateFlow()
 
     private fun appendTurn(turn: ConversationTurn) {
         _conversationHistory.value = (_conversationHistory.value + turn).takeLast(MAX_HISTORY_TURNS * 2)
+        historyStore.append(turn, SettingsManager.conversationHistoryRetentionDays)
     }
 
     // Set by sendChatMessage() when it has to cold-start the session first; flushed once the

@@ -14,6 +14,16 @@ object SettingsManager {
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
+    // Drives the wake-word speech recognizer's locale and the default (uncustomized) voice
+    // trigger phrases -- lets an English speaker use the app without needing Portuguese.
+    var appLanguage: AppLanguage
+        get() = try {
+            AppLanguage.valueOf(prefs.getString("appLanguage", null) ?: AppLanguage.PORTUGUESE.name)
+        } catch (e: IllegalArgumentException) {
+            AppLanguage.PORTUGUESE
+        }
+        set(value) = prefs.edit().putString("appLanguage", value.name).apply()
+
     var aiProvider: AIProvider
         get() = try {
             AIProvider.valueOf(prefs.getString("aiProvider", null) ?: AIProvider.GEMINI.name)
@@ -191,13 +201,24 @@ object SettingsManager {
         prefs.edit().clear().apply()
     }
 
+    // Not translated -- it's a personal name-based phrase, equally learnable in either language.
     const val DEFAULT_WAKE_PHRASE = "Araguaia é Mestre"
-    const val DEFAULT_OPENCLAW_WAKE_PHRASE = "Ativar OpenClaw"
-    const val DEFAULT_AI_STOP_PHRASE = "Encerrar conversa"
-    const val DEFAULT_CAMERA_START_PHRASE = "Ligar câmera"
-    const val DEFAULT_CAMERA_STOP_PHRASE = "Desligar câmera"
-    const val DEFAULT_RECORDING_START_PHRASE = "Gravar vídeo"
-    const val DEFAULT_RECORDING_STOP_PHRASE = "Parar gravação"
+
+    // These default voice-trigger phrases follow appLanguage so an English speaker gets English
+    // defaults out of the box; anyone who has customized a phrase keeps their own value regardless
+    // of language (the get()s above only fall back to these when nothing is stored in prefs).
+    val DEFAULT_OPENCLAW_WAKE_PHRASE: String
+        get() = if (appLanguage == AppLanguage.ENGLISH) "Activate OpenClaw" else "Ativar OpenClaw"
+    val DEFAULT_AI_STOP_PHRASE: String
+        get() = if (appLanguage == AppLanguage.ENGLISH) "End conversation" else "Encerrar conversa"
+    val DEFAULT_CAMERA_START_PHRASE: String
+        get() = if (appLanguage == AppLanguage.ENGLISH) "Turn on camera" else "Ligar câmera"
+    val DEFAULT_CAMERA_STOP_PHRASE: String
+        get() = if (appLanguage == AppLanguage.ENGLISH) "Turn off camera" else "Desligar câmera"
+    val DEFAULT_RECORDING_START_PHRASE: String
+        get() = if (appLanguage == AppLanguage.ENGLISH) "Record video" else "Gravar vídeo"
+    val DEFAULT_RECORDING_STOP_PHRASE: String
+        get() = if (appLanguage == AppLanguage.ENGLISH) "Stop recording" else "Parar gravação"
     const val DEFAULT_FRAME_RATE = 24
     const val DEFAULT_HISTORY_RETENTION_DAYS = 30
 

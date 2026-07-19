@@ -41,6 +41,8 @@ class AudioManager(private val context: Context) {
     private val accumulateLock = Any()
     private var focusRequest: AudioFocusRequest? = null
     private var routedToBluetoothMic = false
+    @Volatile
+    private var isSpeakerOutputEnabled = false
 
     @SuppressLint("MissingPermission")
     fun startCapture(inputSampleRate: Int, outputSampleRate: Int) {
@@ -98,7 +100,9 @@ class AudioManager(private val context: Context) {
 
         // Independent of the input routing above -- lets the user hear AI responses through the
         // phone speaker (so people nearby can hear too) regardless of which mic is capturing.
-        if (SettingsManager.useSpeakerForAiVoice) {
+        // Also toggleable live mid-call via setSpeakerOutput(), like a phone call's speaker button.
+        isSpeakerOutputEnabled = SettingsManager.useSpeakerForAiVoice
+        if (isSpeakerOutputEnabled) {
             routeOutputToSpeaker()
         }
 
@@ -180,6 +184,25 @@ class AudioManager(private val context: Context) {
             Log.d(TAG, "Routed capture to Bluetooth (glasses) mic: $routed")
         } catch (e: Exception) {
             Log.w(TAG, "Failed to route capture to Bluetooth mic: ${e.message}")
+        }
+    }
+
+    // Live speaker toggle, meant to be wired to an on-screen button during an active session --
+    // the same idea as the loudspeaker button in a phone call app. Also persists the choice so
+    // the next session starts with it in the same state.
+    fun setSpeakerOutput(enabled: Boolean) {
+        isSpeakerOutputEnabled = enabled
+        SettingsManager.useSpeakerForAiVoice = enabled
+        if (!isCapturing) return
+        if (enabled) {
+            routeOutputToSpeaker()
+        } else {
+            try {
+                audioTrack?.setPreferredDevice(null)
+                Log.d(TAG, "Routed AI voice output back to default device")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to reset output device: ${e.message}")
+            }
         }
     }
 

@@ -249,6 +249,8 @@ fun StreamScreen(
                 isOpenClawActive = geminiUiState.isOpenClawActive,
                 onToggleMute = { geminiViewModel.toggleMicMute() },
                 isMicMuted = geminiUiState.isMicMuted,
+                onToggleSpeaker = { geminiViewModel.toggleSpeaker() },
+                isSpeakerOn = geminiUiState.isSpeakerOn,
                 onToggleLive = {
                     if (webrtcUiState.isActive) {
                         webrtcViewModel.stopSession()

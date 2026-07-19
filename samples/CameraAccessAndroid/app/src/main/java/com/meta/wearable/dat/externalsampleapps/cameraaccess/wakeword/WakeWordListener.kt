@@ -9,6 +9,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
 
 // Continuously listens for a spoken wake phrase using Android's built-in SpeechRecognizer.
 // Each recognition session is short-lived (ends after a pause or timeout), so this restarts
@@ -92,7 +93,7 @@ class WakeWordListener(private val context: Context) {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, SettingsManager.appLanguage.speechRecognizerLocale)
         }
 
         try {

@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 data class GeminiUiState(
     val isGeminiActive: Boolean = false,
     val isMicMuted: Boolean = false,
+    val isSpeakerOn: Boolean = SettingsManager.useSpeakerForAiVoice,
     val isOpenClawActive: Boolean = false,
     val connectionState: GeminiConnectionState = GeminiConnectionState.Disconnected,
     val isModelSpeaking: Boolean = false,
@@ -442,6 +443,14 @@ class GeminiSessionViewModel(application: Application) : AndroidViewModel(applic
 
     fun toggleMicMute() {
         _uiState.value = _uiState.value.copy(isMicMuted = !_uiState.value.isMicMuted)
+    }
+
+    // Live speaker toggle, like the loudspeaker button in a phone call app -- lets people nearby
+    // hear the AI without needing to ask for it by voice or dig into Settings mid-conversation.
+    fun toggleSpeaker() {
+        val enabled = !_uiState.value.isSpeakerOn
+        _uiState.value = _uiState.value.copy(isSpeakerOn = enabled)
+        audioManager.setSpeakerOutput(enabled)
     }
 
     fun toggleOpenClaw() {

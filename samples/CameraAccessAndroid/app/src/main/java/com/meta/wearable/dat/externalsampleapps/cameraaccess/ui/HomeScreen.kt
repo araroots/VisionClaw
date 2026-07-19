@@ -32,10 +32,16 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -46,6 +52,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.R
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.AppLanguage
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.settings.SettingsManager
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.wearables.WearablesViewModel
 
 @Composable
@@ -57,16 +65,40 @@ fun HomeScreen(
   val activity = LocalActivity.current
   val context = LocalContext.current
 
+  var appLanguage by remember { mutableStateOf(SettingsManager.appLanguage) }
+
   Box(modifier = modifier.fillMaxSize()) {
-    Text(
-        text = "🇧🇷",
-        fontSize = 28.sp,
+    // Toggles the wake-word recognizer's language (and default voice-trigger phrases) between
+    // Portuguese and English, so an English speaker can use the app hands-free too.
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier =
-            Modifier.align(Alignment.TopCenter)
+            Modifier.align(Alignment.TopStart)
                 .systemBarsPadding()
-                .padding(top = 12.dp)
-                .alpha(0.85f),
-    )
+                .padding(8.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .clickable {
+                  appLanguage = if (appLanguage == AppLanguage.PORTUGUESE) {
+                    AppLanguage.ENGLISH
+                  } else {
+                    AppLanguage.PORTUGUESE
+                  }
+                  SettingsManager.appLanguage = appLanguage
+                }
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+    ) {
+      Text(
+          text = if (appLanguage == AppLanguage.PORTUGUESE) "🇧🇷" else "🇺🇸",
+          fontSize = 20.sp,
+      )
+      Spacer(modifier = Modifier.width(4.dp))
+      Text(
+          text = appLanguage.shortLabel,
+          fontSize = 13.sp,
+          fontWeight = FontWeight.SemiBold,
+          color = Color.Gray,
+      )
+    }
 
     // Settings gear + history (top-right)
     Row(modifier = Modifier.align(Alignment.TopEnd).systemBarsPadding().padding(8.dp)) {

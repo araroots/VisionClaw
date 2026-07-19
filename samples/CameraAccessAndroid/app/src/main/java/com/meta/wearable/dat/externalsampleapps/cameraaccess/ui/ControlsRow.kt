@@ -40,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -98,18 +99,21 @@ fun ControlsRow(
                 Icon(imageVector = Icons.Default.Close, contentDescription = tr("Parar", "Stop"), tint = Color.White)
             }
 
+            // Camera toggle -- swapped into the primary row from the tray; turning the camera on
+            // is fundamental enough to earn a permanent spot, same treatment as Stop/Live.
             Button(
-                onClick = onCapturePhoto,
-                enabled = isCaptureEnabled,
+                onClick = onToggleCamera,
                 modifier = Modifier.weight(0.85f).height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isCameraActive) AppColor.Yellow else AppColor.DeepBlue,
+                ),
                 shape = RoundedCornerShape(18.dp),
                 contentPadding = PaddingValues(0.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Default.PhotoCamera,
-                    contentDescription = tr("Capturar Foto", "Capture Photo"),
-                    tint = Color.Black,
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = if (isCameraActive) tr("Desligar Câmera", "Stop Camera") else tr("Ligar Câmera", "Start Camera"),
+                    tint = Color.White,
                 )
             }
 
@@ -143,18 +147,23 @@ fun ControlsRow(
                 }
             }
 
+            // Record -- swapped into the primary row from the tray, but stays dimmed and
+            // non-interactive until the camera is actually on: there is nothing to record
+            // otherwise. Full opacity plus its normal red "recording" color once enabled.
             Button(
-                onClick = onToggleLive,
-                modifier = Modifier.weight(0.85f).height(56.dp),
+                onClick = onToggleRecord,
+                enabled = isCameraActive,
+                modifier = Modifier.weight(0.85f).height(56.dp).alpha(if (isCameraActive) 1f else 0.4f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isLiveActive) AppColor.Red else AppColor.DeepBlue,
+                    containerColor = if (isRecording) AppColor.Red else AppColor.DeepBlue,
+                    disabledContainerColor = AppColor.DeepBlue,
                 ),
                 shape = RoundedCornerShape(18.dp),
                 contentPadding = PaddingValues(0.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Default.Videocam,
-                    contentDescription = if (isLiveActive) tr("Parar Live", "Stop Live") else tr("Iniciar Live", "Start Live"),
+                    imageVector = Icons.Default.FiberManualRecord,
+                    contentDescription = if (isRecording) tr("Parar Gravação", "Stop Recording") else tr("Gravar", "Record"),
                     tint = Color.White,
                 )
             }
@@ -200,12 +209,16 @@ fun ControlsRow(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Photo capture -- swapped out of the primary row to make room for Camera;
+                    // a one-shot action rather than a toggle, so it never lights up like the
+                    // others, just goes DeepBlue<->disabled depending on isCaptureEnabled.
                     ChipButton(
-                        label = tr("Câmera", "Camera"),
-                        icon = Icons.Default.CameraAlt,
-                        isOn = isCameraActive,
-                        onColor = AppColor.Yellow,
-                        onClick = onToggleCamera,
+                        label = tr("Foto", "Photo"),
+                        icon = Icons.Default.PhotoCamera,
+                        isOn = false,
+                        onColor = AppColor.DeepBlue,
+                        onClick = onCapturePhoto,
+                        enabled = isCaptureEnabled,
                         modifier = Modifier.weight(1f),
                     )
                     ChipButton(
@@ -244,12 +257,13 @@ fun ControlsRow(
                         onClick = onToggleChat,
                         modifier = Modifier.weight(1f),
                     )
+                    // Live -- swapped out of the primary row to make room for Record.
                     ChipButton(
-                        label = tr("Gravar", "Record"),
-                        icon = Icons.Default.FiberManualRecord,
-                        isOn = isRecording,
+                        label = tr("Live", "Live"),
+                        icon = Icons.Default.Videocam,
+                        isOn = isLiveActive,
                         onColor = AppColor.Red,
-                        onClick = onToggleRecord,
+                        onClick = onToggleLive,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -268,12 +282,15 @@ private fun ChipButton(
     onColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier.height(44.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = if (isOn) onColor else AppColor.DeepBlue,
+            disabledContainerColor = AppColor.DeepBlue.copy(alpha = 0.4f),
         ),
         shape = RoundedCornerShape(14.dp),
         contentPadding = PaddingValues(horizontal = 12.dp),

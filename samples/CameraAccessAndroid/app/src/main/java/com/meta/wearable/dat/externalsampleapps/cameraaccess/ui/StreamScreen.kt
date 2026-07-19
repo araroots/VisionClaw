@@ -23,7 +23,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -200,6 +205,24 @@ fun StreamScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     WebRTCOverlay(uiState = webrtcUiState)
                 }
+            }
+
+            // Settings shortcut (top-right) -- StreamScreen had no way to reach Settings without
+            // first stopping the session. Dark scrim like the "Mais opções" pill so it stays
+            // legible over both the white idle background and the live video feed.
+            IconButton(
+                onClick = { wearablesViewModel.showSettings() },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .padding(top = 4.dp)
+                    .background(Color.Black.copy(alpha = 0.45f), CircleShape),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = tr("Configurações", "Settings"),
+                    tint = Color.White,
+                )
             }
 
             // Chat panel (voice + typed history) -- visibility is independent of isGeminiActive
